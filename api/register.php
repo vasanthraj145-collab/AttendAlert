@@ -54,14 +54,29 @@ if ($stmt->execute()) {
         $st = $conn->prepare("INSERT INTO students (user_id, name, roll_no, class_name, parent_phone) VALUES (?, ?, ?, ?, ?)");
         $st->bind_param("issss", $user_id, $name, $roll_no, $class_name, $parent_phone);
         $st->execute();
+
+        // Send Email Verification / Welcome Alert
+        require_once "email_helper.php";
+        require_once "whatsapp_helper.php";
+        $emailMsg = "Welcome to AttendAlert Smart Attendance Portal!\n\nYour student account has been registered successfully.\nRoll No: $roll_no\nClass: $class_name\nEmail: $email";
+        sendAlertEmail($email, $name, "🎓 Student Account Registration Verification — AttendAlert", $emailMsg);
+
+        $waMsg = "Hello $name, Your Student Account (Roll No: $roll_no) has been successfully created on AttendAlert Smart Portal!";
+        $waLink = generateWhatsAppLink($parent_phone, $waMsg);
     } else if ($role === "teacher") {
         $tc = $conn->prepare("INSERT INTO teachers (user_id, department, phone, subjects) VALUES (?, 'BCA', ?, ?)");
         $tc->bind_param("iss", $user_id, $phone, $subjects);
         $tc->execute();
+        $waLink = "";
     }
 
-    echo json_encode(["success" => true, "message" => "Registration successful", "user_id" => $user_id]);
+    echo json_encode([
+        "success" => true,
+        "message" => "Registration successful! Welcome verification email & WhatsApp notification generated.",
+        "user_id" => $user_id,
+        "whatsapp_link" => $waLink ?? ""
+    ]);
 } else {
-    echo json_encode(["success" => false, "message" => "Failed to create user: " . $conn->error]);
+    echo json_encode(["success" => false, "message" => "Failed to create user: " . ($conn ? $conn->error : "DB Connection Error")]);
 }
 ?>

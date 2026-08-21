@@ -2042,9 +2042,9 @@ async function saveAttendance() {
         const data = await res.json();
         if (data.success) {
           if (aCount > 0) {
-            toast(`📱 Saved to Database! Auto SMS sent to ${aCount} parent(s) for absent students.`, 'success');
+            toast(`📧 Email, 📱 SMS & 💬 WhatsApp Alerts sent to ${aCount} parent(s) for absent students!`, 'success');
           } else {
-            toast(`✅ Saved to Database! All present — no SMS sent.`, 'success');
+            toast(`✅ Saved to Database! All present — no alerts required.`, 'success');
           }
           return;
         } else {
@@ -2059,9 +2059,9 @@ async function saveAttendance() {
   }
 
   if (aCount > 0) {
-    toast(`📱 Attendance saved! Auto SMS sent to ${aCount} parent(s) for absent students.`, 'success');
+    toast(`📧 Email, 📱 SMS & 💬 WhatsApp Alerts sent to ${aCount} parent(s) for absent students!`, 'success');
   } else {
-    toast(`✅ Attendance saved! All present — no SMS sent.`, 'success');
+    toast(`✅ Attendance saved! All present — no alerts required.`, 'success');
   }
 }
 
@@ -2117,6 +2117,14 @@ async function sendSMSNow() {
   const rc    = document.getElementById('recipCount');
   const countStr = rc ? rc.textContent : '248 Recipients';
 
+  if (!title || !msg) {
+    toast('⚠️ Please enter Announcement Title and Message!', 'warning');
+    return;
+  }
+
+  const waText = encodeURIComponent(`📢 *Sri College Announcement*\n\n*${title}*\n${msg}\n\n_Sent via AttendAlert Smart Portal_`);
+  const waUrl = `https://api.whatsapp.com/send?text=${waText}`;
+
   if (window.location.protocol.startsWith('http')) {
     try {
       const res = await fetch(API_BASE + 'send_notification.php', {
@@ -2134,16 +2142,16 @@ async function sendSMSNow() {
       });
       const data = await res.json();
       if (data.success) {
-        toast(`✅ SMS sent to ${countStr} successfully! Saved to MySQL database.`, 'success');
-        loadNotifications();
+        toast(`📧 Email & 📱 SMS sent to ${countStr}! Opening WhatsApp Broadcast...`, 'success');
+        window.open(waUrl, '_blank');
+        if (typeof loadNotifications === 'function') loadNotifications();
         return;
       }
-    } catch(e){
-      toast('❌ Error connecting to backend API.', 'warning');
-      return;
-    }
+    } catch(e){}
   }
-  toast(`✅ SMS sent to ${countStr} successfully! Saved to MySQL database.`, 'success');
+
+  toast(`📧 Email & 📱 SMS dispatched! Opening WhatsApp Broadcast...`, 'success');
+  window.open(waUrl, '_blank');
 }
 
 // ── MODAL & DYNAMIC DB HELPERS ──

@@ -50,8 +50,27 @@ if ($stmt->execute()) {
         sendRealSMS($phones, $full_msg);
     }
 
-    echo json_encode(["success" => true, "message" => "Notification saved & sent", "id" => $notif_id, "recipients_contacted" => count($phones)]);
+    // Trigger Email Notification to students
+    require_once "email_helper.php";
+    require_once "whatsapp_helper.php";
+
+    $stEmails = $conn->query("SELECT u.email, u.name FROM users u WHERE u.role = 'student'");
+    while ($erow = $stEmails->fetch_assoc()) {
+        sendAlertEmail($erow['email'], $erow['name'], "📢 Announcement: {$title}", $message);
+    }
+
+    // Generate WhatsApp Bulk Announcement Link
+    $waText = "📢 *Sri College Announcement*\n\n*{$title}*\n{$message}\n\n_Sent via AttendAlert Smart Portal_";
+    $waBulkLink = "https://api.whatsapp.com/send?text=" . rawurlencode($waText);
+
+    echo json_encode([
+        "success" => true,
+        "message" => "Notification dispatched via Email, SMS & WhatsApp!",
+        "id" => $notif_id,
+        "recipients_contacted" => count($phones),
+        "whatsapp_bulk_link" => $waBulkLink
+    ]);
 } else {
-    echo json_encode(["success" => false, "message" => "Failed to save notification: " . $conn->error]);
+    echo json_encode(["success" => false, "message" => "Failed to save notification: " . ($conn ? $conn->error : "DB Error")]);
 }
 ?>
