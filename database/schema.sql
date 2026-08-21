@@ -1,10 +1,7 @@
 -- ================================================
 -- AttendAlert Complete Production Schema
--- Import this in phpMyAdmin or MySQL CLI
+-- Import this inside your selected database in phpMyAdmin
 -- ================================================
-
-CREATE DATABASE IF NOT EXISTS attendalert;
-USE attendalert;
 
 -- ---------------------------------
 -- USERS (login: admin / teacher / student)
