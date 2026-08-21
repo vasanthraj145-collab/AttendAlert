@@ -1,0 +1,19 @@
+# Operating System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE / Gemini / Antigravity Scratch Files
+.vscode/
+.idea/
+*.log
+.gemini/
+scratch/
+
+# Temporary / OS Cache
+*.tmp
+*.bak
+*.swp
+
+# XAMPP / Local Dev Artifacts
+/tmp/

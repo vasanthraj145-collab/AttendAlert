@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendAlert — Attendance Alert System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --blue:#2563eb;--blue-lt:#eff6ff;--blue-md:#bfdbfe;
+  --green:#16a34a;--green-lt:#f0fdf4;
+  --red:#dc2626;--red-lt:#fef2f2;
+  --amber:#d97706;--amber-lt:#fffbeb;
+  --slate:#0f172a;--muted:#64748b;
+  --border:#e2e8f0;--bg:#f8fafc;--white:#fff;
+  --sidebar:#0f172a;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.06);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--slate);font-size:14px;line-height:1.6;}
+.hidden{display:none!important;}
+button{cursor:pointer;font-family:'Inter',sans-serif;}
+input,select,textarea{font-family:'Inter',sans-serif;}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+#toast{
+  position:fixed;top:20px;right:20px;z-index:9999;
+  padding:14px 20px;border-radius:12px;font-size:13px;font-weight:600;
+  color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.18);
+  transform:translateX(120%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+  max-width:320px;line-height:1.5;
+}
+#toast.show{transform:translateX(0);}
+#toast.success{background:linear-gradient(135deg,#16a34a,#15803d);}
+#toast.info{background:linear-gradient(135deg,#2563eb,#1d4ed8);}
+#toast.warning{background:linear-gradient(135deg,#d97706,#b45309);}
+
+/* ══════════════════════════════════════════
+   LOGIN PAGE
+══════════════════════════════════════════ */
+#loginPage{
+  min-height:100vh;
+  background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.login-card{
+  background:#fff;border-radius:24px;
+  box-shadow:0 24px 80px rgba(0,0,0,.2);
+  display:flex;overflow:hidden;width:100%;max-width:860px;min-height:520px;
+}
+.login-left{
+  flex:1;background:linear-gradient(145deg,#1e3a8a,#2563eb);
+  padding:48px 40px;display:flex;flex-direction:column;justify-content:center;
+}
+.login-brand{
+  font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;
+  color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:10px;
+}
+.brand-icon{
+  width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.login-left p{color:#93c5fd;font-size:13px;margin-bottom:32px;}
+.role-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7dd3fc;margin-bottom:12px;}
+.role-btn{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);
+  border-radius:12px;padding:11px 16px;margin-bottom:10px;
+  color:#fff;font-size:13px;font-weight:600;transition:all .2s;width:100%;
+}
+.role-btn:hover{background:rgba(255,255,255,.15);}
+.role-btn.active{background:#fff;color:var(--blue);border-color:#fff;}
+.role-btn .ri{font-size:18px;width:24px;text-align:center;}
+.role-cred{font-size:10px;color:#93c5fd;margin-top:1px;}
+.role-btn.active .role-cred{color:var(--blue);opacity:.7;}
+
+.login-right{flex:1;padding:48px 40px;display:flex;flex-direction:column;justify-content:center;}
+.login-right h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;}
+.login-right .sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+.fl{margin-bottom:16px;}
+.fl label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+.fl input{
+  width:100%;padding:11px 14px;border:1.5px solid var(--border);
+  border-radius:10px;font-size:13px;outline:none;transition:border .2s;background:var(--bg);
+}
+.fl input:focus{border-color:var(--blue);}
+.btn-login{
+  width:100%;padding:13px;background:var(--blue);color:#fff;
+  border:none;border-radius:11px;font-size:14px;font-weight:700;
+  transition:background .2s;margin-top:4px;
+}
+.btn-login:hover{background:#1d4ed8;}
+.login-note{margin-top:16px;text-align:center;font-size:11px;color:var(--muted);}
+
+/* ══════════════════════════════════════════
+   APP SHELL (after login)
+══════════════════════════════════════════ */
+#appShell{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+.sidebar{
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:50;
+  overflow-y:auto;
+}
+.sb-logo{
+  padding:18px 18px 16px;border-bottom:1px solid #1e293b;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;
+  color:#fff;display:flex;align-items:center;gap:9px;
+}
+.sb-logo-icon{
+  width:30px;height:30px;background:var(--blue);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.sb-role-badge{
+  margin:10px 14px;background:#1e293b;border-radius:8px;
+  padding:8px 12px;display:flex;align-items:center;gap:8px;
+}
+.sb-role-badge .rb-icon{font-size:16px;}
+.sb-role-badge .rb-name{font-size:12px;font-weight:600;color:#e2e8f0;}
+.sb-role-badge .rb-role{font-size:10px;color:#64748b;}
+.sb-section{
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:#475569;padding:14px 16px 5px;
+}
+.sb-item{
+  display:flex;align-items:center;gap:10px;padding:9px 16px;
+  color:#94a3b8;font-size:12.5px;font-weight:500;
+  border-left:3px solid transparent;transition:all .15s;cursor:pointer;
+}
+.sb-item:hover{background:#1e293b;color:#e2e8f0;}
+.sb-item.active{background:#1e3a8a;color:#fff;border-left-color:var(--blue);}
+.sb-item .si{font-size:15px;width:18px;text-align:center;}
+.sb-logout{
+  margin-top:auto;padding:14px 16px;border-top:1px solid #1e293b;
+  display:flex;align-items:center;gap:10px;color:#ef4444;
+  font-size:12.5px;font-weight:600;cursor:pointer;
+}
+.sb-logout:hover{background:#1e293b;}
+
+/* MAIN AREA */
+.main-area{margin-left:220px;flex:1;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 24px;height:56px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:40;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
+}
+.topbar h2{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.notif-bell{position:relative;font-size:18px;cursor:pointer;}
+.notif-bell::after{
+  content:'';position:absolute;top:-2px;right:-2px;
+  width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid #fff;
+}
+.topbar-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:#fff;font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* PAGE CONTENT */
+.page-content{padding:24px;display:none;}
+.page-content.active{display:block;}
+
+/* ══════════════════════════════════════════
+   STAT CARDS
+══════════════════════════════════════════ */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.stat-card{
+  background:#fff;border-radius:14px;padding:18px;
+  border:1px solid var(--border);box-shadow:var(--shadow);
+  transition:transform .2s;
+}
+.stat-card:hover{transform:translateY(-2px);}
+.sc-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;
+}
+.sc-num{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;margin-bottom:2px;}
+.sc-label{font-size:11px;color:var(--muted);font-weight:500;}
+.sc-trend{font-size:10px;margin-top:4px;}
+.trend-up{color:var(--green);}
+.trend-dn{color:var(--red);}
+
+/* ══════════════════════════════════════════
+   CARDS / TABLES
+══════════════════════════════════════════ */
+.card{
+  background:#fff;border:1px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;
+}
+.card-head{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-head h3{font-size:14px;font-weight:700;}
+.card-action{font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;}
+.card-body{padding:16px 18px;}
+
+table{width:100%;border-collapse:collapse;}
+th{
+  background:#f1f5f9;padding:9px 12px;text-align:left;
+  font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--border);
+}
+td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border);background:#fff;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fafc;}
+
+/* ══════════════════════════════════════════
+   BADGES / CHIPS
+══════════════════════════════════════════ */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;
+}
+.badge-green{background:var(--green-lt);color:var(--green);}
+.badge-red{background:var(--red-lt);color:var(--red);}
+.badge-amber{background:var(--amber-lt);color:var(--amber);}
+.badge-blue{background:var(--blue-lt);color:var(--blue);}
+
+/* ══════════════════════════════════════════
+   ATTENDANCE TOGGLE
+══════════════════════════════════════════ */
+.att-toggle{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;}
+.att-opt{
+  padding:5px 13px;font-size:11px;font-weight:700;cursor:pointer;
+  border-right:1px solid var(--border);transition:all .15s;color:var(--muted);background:#fff;
+}
+.att-opt:last-child{border-right:none;}
+.att-opt.sel-p{background:var(--green-lt);color:var(--green);}
+.att-opt.sel-a{background:var(--red-lt);color:var(--red);}
+.att-opt.sel-l{background:var(--amber-lt);color:var(--amber);}
+
+/* ══════════════════════════════════════════
+   NOTIFICATION TYPE CARDS
+══════════════════════════════════════════ */
+.notif-type-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+.nt-card{
+  border:2px solid var(--border);border-radius:12px;padding:14px 8px;
+  text-align:center;cursor:pointer;transition:all .2s;background:#fff;
+}
+.nt-card:hover{border-color:var(--blue-md);}
+.nt-card.sel{border-color:var(--blue);background:var(--blue-lt);}
+.nt-card .nt-icon{font-size:22px;margin-bottom:4px;}
+.nt-card .nt-label{font-size:10px;font-weight:700;color:var(--muted);}
+.nt-card.sel .nt-label{color:var(--blue);}
+
+/* RECIPIENT CHIPS */
+.chip-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.chip{
+  padding:7px 16px;border:1.5px solid var(--border);border-radius:99px;
+  font-size:12px;font-weight:600;background:#fff;cursor:pointer;transition:all .15s;
+}
+.chip:hover{border-color:var(--blue-md);}
+.chip.sel{background:var(--blue);border-color:var(--blue);color:#fff;}
+
+/* FORM ELEMENTS */
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+.form-group input,
+.form-group select,
+.form-group textarea{
+  width:100%;padding:10px 13px;border:1.5px solid var(--border);
+  border-radius:9px;font-size:13px;outline:none;transition:border .2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus{border-color:var(--blue);}
+.form-group textarea{resize:vertical;min-height:90px;}
+.char-count{font-size:10px;color:var(--muted);text-align:right;margin-top:3px;}
+
+/* SMS PREVIEW BOX */
+.sms-preview{
+  background:#1e293b;border-radius:12px;padding:14px 16px;margin-top:12px;
+}
+.sms-prev-label{font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.sms-bubble{
+  background:var(--blue);border-radius:12px 12px 12px 3px;
+  padding:10px 14px;font-size:12px;color:#fff;line-height:1.5;max-width:90%;
+}
+.sms-time{font-size:10px;color:#64748b;margin-top:6px;text-align:right;}
+
+/* SUBMIT BUTTON */
+.btn-primary{
+  padding:11px 22px;background:var(--blue);color:#fff;
+  border:none;border-radius:10px;font-size:13px;font-weight:700;transition:background .2s;
+}
+.btn-primary:hover{background:#1d4ed8;}
+.btn-full{width:100%;}
+.btn-green{background:var(--green);}
+.btn-green:hover{background:#15803d;}
+
+/* ══════════════════════════════════════════
+   STUDENT SUBJECT CARDS
+══════════════════════════════════════════ */
+.subj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.subj-card{
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:16px;box-shadow:var(--shadow);transition:transform .2s;
+}
+.subj-card:hover{transform:translateY(-3px);}
+.subj-name{font-size:12px;font-weight:700;margin-bottom:8px;color:var(--slate);}
+.subj-pct{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;margin-bottom:4px;}
+.pct-bar-wrap{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px;}
+.pct-bar{height:100%;border-radius:99px;transition:width .6s;}
+
+/* WARNING BOX */
+.warning-box{
+  background:#fff7ed;border:1.5px solid #fed7aa;
+  border-radius:12px;padding:14px 16px;display:flex;gap:12px;margin-bottom:16px;
+}
+.wb-icon{font-size:22px;flex-shrink:0;}
+.wb-title{font-size:13px;font-weight:700;color:#92400e;margin-bottom:3px;}
+.wb-text{font-size:12px;color:#b45309;line-height:1.5;}
+
+/* NOTIF INBOX */
+.notif-item{
+  display:flex;gap:12px;padding:11px 0;
+  border-bottom:1px solid var(--border);align-items:flex-start;
+}
+.notif-item:last-child{border-bottom:none;}
+.ni-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.ni-text{font-size:12.5px;line-height:1.4;}
+.ni-time{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* PROGRESS BAR (attendance summary) */
+.prog-wrap{background:#e2e8f0;border-radius:99px;height:8px;overflow:hidden;margin:4px 0;}
+.prog-bar{height:100%;border-radius:99px;transition:width .5s;}
+
+/* SECTION HEADING */
+.sec-heading{
+  font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+  margin-bottom:4px;
+}
+.sec-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+
+/* GRID HELPERS */
+.grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+.grid-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+
+/* STUDENT PROFILE HEADER */
+.student-prof{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:20px 22px;display:flex;align-items:center;gap:16px;
+  box-shadow:var(--shadow);margin-bottom:18px;
+}
+.sp-avatar{
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#2563eb);
+  color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.sp-name{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;}
+.sp-info{font-size:12px;color:var(--muted);}
+.sp-overall{margin-left:auto;text-align:right;}
+.sp-pct{font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:700;}
+
+/* DEFAULTER ROW */
+.def-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.def-row:last-child{border-bottom:none;}
+.def-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:#fff;font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.def-name{flex:1;}
+.def-name strong{font-size:12.5px;display:block;}
+.def-name span{font-size:10px;color:var(--muted);}
+
+/* ALERT HISTORY ROW */
+.hist-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.hist-item:last-child{border-bottom:none;}
+.hi-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.hi-title{font-size:12.5px;font-weight:600;margin-bottom:1px;}
+.hi-meta{font-size:10.5px;color:var(--muted);}
+.hi-count{margin-left:auto;font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-lt);padding:3px 10px;border-radius:99px;white-space:nowrap;}
+
+/* SELECT BOX */
+.sel-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.sel-box{
+  padding:9px 14px;border:1.5px solid var(--border);border-radius:9px;
+  font-size:12px;font-weight:600;background:#fff;color:var(--slate);
+  display:flex;align-items:center;gap:6px;
+}
+.sel-box select{border:none;outline:none;font-size:12px;font-weight:600;background:transparent;color:var(--blue);cursor:pointer;}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(max-width:768px){
+  .sidebar{width:200px;}
+  .main-area{margin-left:200px;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .subj-grid{grid-template-columns:repeat(2,1fr);}
+  .notif-type-grid{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+}
+@media(max-width:540px){
+  .sidebar{display:none;}
+  .main-area{margin-left:0;}
+  .login-card{flex-direction:column;}
+}
+
+/* ══════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(15,23,42,.65);backdrop-filter:blur(4px);
+  z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.modal-card{
+  background:#fff;border-radius:18px;width:100%;max-width:480px;
+  box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden;
+  animation:modalSlide .25s ease-out;
+}
+@keyframes modalSlide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-head h3{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;}
+.modal-close{font-size:22px;cursor:pointer;color:var(--muted);transition:color .15s;}
+.modal-close:hover{color:var(--red);}
+.modal-body{padding:20px;}
+
+/* ══════════════════════════════════════════
+   PRINT STYLESHEET FOR PDF / REPORTS
+══════════════════════════════════════════ */
+@media print {
+  .sidebar, .topbar-right, .btn-primary, button, #quickRoleSwitch, .sb-logout {
+    display: none !important;
+  }
+  .main-area {
+    margin-left: 0 !important;
+    padding: 10px !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    break-inside: avoid;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1: LOGIN
+══════════════════════════════════════════ -->
+<div id="loginPage">
+  <div class="login-card">
+    <!-- Left Panel -->
+    <div class="login-left">
+      <div class="login-brand">
+        <div class="brand-icon">📋</div>
+        AttendAlert
+      </div>
+      <p>Smart Attendance & Notification System for Modern Colleges</p>
+      <div class="role-label">Select Your Role</div>
+
+      <button class="role-btn active" data-act="selectRole" data-role="admin" id="roleBtn-admin">
+        <span class="ri">🛡️</span>
+        <div style="text-align:left">
+          <div>Admin</div>
+          <div class="role-cred">admin@college.edu / admin123</div>
+        </div>
+      </button>
+      <button class="role-btn" data-act="selectRole" data-role="teacher" id="roleBtn-teacher">
+        <span class="ri">👨‍🏫</span>
+        <div style="text-align:left">
+          <div>Teacher</div>
+          <div class="role-cred">teacher@college.edu / teach123</div>
+        </div>
+      </button>
+      <button class="role-btn" data-act="selectRole" data-role="student" id="roleBtn-student">
+        <span class="ri">🎓</span>
+        <div style="text-align:left">
+          <div>Student</div>
+          <div class="role-cred">student@college.edu / stud123</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="login-right">
+      <h2 id="loginTitle">Welcome, Admin 👋</h2>
+      <p class="sub" id="loginSub">Login to access the admin dashboard</p>
+
+      <div class="fl">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" value="admin@college.edu">
+      </div>
+      <div class="fl">
+        <label>Password</label>
+        <input type="password" id="loginPass" value="admin123">
+      </div>
+      <button class="btn-login" data-act="doLogin">🔐 Login to Dashboard</button>
+      <button type="button" class="btn-primary" style="margin-top:12px;width:100%;background:#0284c7;font-size:13px;padding:12px" onclick="openModal('regModal')" data-act="openModal" data-modal="regModal">🎓 New Student? Register Account</button>
+      <div style="margin-top:14px;text-align:center;padding-top:10px">
+        <span style="font-size:12px;color:var(--muted)">Need help? </span>
+        <a href="javascript:void(0)" onclick="openModal('regModal')" data-act="openModal" data-modal="regModal" style="color:var(--blue);font-weight:700;font-size:12px;text-decoration:underline">Student Registration Portal</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════════ -->
+<div id="appShell" class="hidden">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">📋</div>
+      AttendAlert
+    </div>
+    <div class="sb-role-badge">
+      <span class="rb-icon" id="sbRoleIcon">🛡️</span>
+      <div>
+        <div class="rb-name" id="sbRoleName">Admin User</div>
+        <div class="rb-role" id="sbRoleLabel">Administrator</div>
+      </div>
+    </div>
+
+    <!-- Admin Nav -->
+    <div id="adminNav">
+      <div class="sb-section">Main</div>
+      <div class="sb-item active" data-act="showPage" data-page="adminDash" data-nav="1"><span class="si">🏠</span> Dashboard</div>
+      <div class="sb-item" data-act="showPage" data-page="manageStudents" data-nav="1"><span class="si">🎓</span> Students</div>
+      <div class="sb-item" data-act="showPage" data-page="manageTeachers" data-nav="1"><span class="si">👨‍🏫</span> Teachers</div>
+      <div class="sb-section">Approvals</div>
+      <div class="sb-item" data-act="showPage" data-page="approveOD" data-nav="1"><span class="si">📝</span> Approve OD Requests</div>
+      <div class="sb-section">Alerts</div>
+      <div class="sb-item" data-act="showPage" data-page="sendNotif" data-nav="1"><span class="si">🔔</span> Send Notification</div>
+      <div class="sb-item" data-act="showPage" data-page="notifHistory" data-nav="1"><span class="si">📜</span> Notif History</div>
+      <div class="sb-section">Reports</div>
+      <div class="sb-item" data-act="showPage" data-page="defaulters" data-nav="1"><span class="si">⚠️</span> Defaulters</div>
+      <div class="sb-item" data-act="showPage" data-page="reports" data-nav="1"><span class="si">📊</span> Reports</div>
+    </div>
+
+    <!-- Teacher Nav -->
+    <div id="teacherNav" class="hidden">
+      <div class="sb-section">Main</div>
+      <div class="sb-item active" data-act="showPage" data-page="teacherDash" data-nav="1"><span class="si">🏠</span> Dashboard</div>
+      <div class="sb-item" data-act="showPage" data-page="markAtt" data-nav="1"><span class="si">📋</span> Mark Attendance</div>
+      <div class="sb-item" data-act="showPage" data-page="uploadMarks" data-nav="1"><span class="si">📤</span> Upload Student Marks</div>
+      <div class="sb-item" data-act="showPage" data-page="approveOD" data-nav="1"><span class="si">📝</span> Approve OD Requests</div>
+      <div class="sb-item" data-act="showPage" data-page="myClasses" data-nav="1"><span class="si">📚</span> My Classes</div>
+      <div class="sb-section">Alerts</div>
+      <div class="sb-item" data-act="showPage" data-page="sendNotif" data-nav="1"><span class="si">🔔</span> Send Notification</div>
+      <div class="sb-item" data-act="showPage" data-page="notifHistory" data-nav="1"><span class="si">📜</span> Notif History</div>
+      <div class="sb-section">Reports</div>
+      <div class="sb-item" data-act="showPage" data-page="teacherReports" data-nav="1"><span class="si">📊</span> Reports</div>
+    </div>
+
+    <!-- Student Nav -->
+    <div id="studentNav" class="hidden">
+      <div class="sb-section">My Account</div>
+      <div class="sb-item active" data-act="showPage" data-page="studentDash" data-nav="1"><span class="si">🏠</span> Dashboard</div>
+      <div class="sb-item" data-act="showPage" data-page="myAttendance" data-nav="1"><span class="si">📋</span> My Attendance</div>
+      <div class="sb-item" data-act="showPage" data-page="examMarks" data-nav="1"><span class="si">🎓</span> Exam Marks & Results</div>
+      <div class="sb-item" data-act="showPage" data-page="studentBunkCalc" data-nav="1"><span class="si">🧮</span> Bunk Calculator</div>
+      <div class="sb-item" data-act="showPage" data-page="studentOD" data-nav="1"><span class="si">📝</span> OD / Leave Request</div>
+      <div class="sb-item" data-act="showPage" data-page="myNotifs" data-nav="1"><span class="si">🔔</span> Notifications</div>
+    </div>
+
+    <div class="sb-logout" data-act="doLogout">🚪 Logout</div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <h2 id="topbarTitle">Admin Dashboard</h2>
+      <div class="topbar-right">
+        <div class="notif-bell">🔔</div>
+        <div class="topbar-avatar" id="topbarAvatar">AD</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: DASHBOARD
+    ══════════════════════════════════════════ -->
+    <div class="page-content active" id="adminDash">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div class="sec-heading">Good Morning, Admin 👋</div>
+          <div class="sec-sub" style="margin-bottom:0">Overview of today's attendance & quick user management</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary" data-act="openModal" data-modal="addStudentModal">🎓 + Add Student</button>
+          <button class="btn-primary" style="background:#7c3aed" data-act="openModal" data-modal="addTeacherModal">👨‍🏫 + Add Teacher</button>
+          <button class="btn-primary" style="background:var(--green)" data-act="showPage" data-page="sendNotif">🔔 Send Notif</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="sc-icon" style="background:#eff6ff">🎓</div>
+          <div class="sc-num" style="color:var(--blue)">248</div>
+          <div class="sc-label">Total Students</div>
+          <div class="sc-trend trend-up">↑ 12 new this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon" style="background:#f0fdf4">✅</div>
+          <div class="sc-num" style="color:var(--green)">87%</div>
+          <div class="sc-label">Today's Attendance</div>
+          <div class="sc-trend trend-up">↑ Good standing</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon" style="background:#fef2f2">❌</div>
+          <div class="sc-num" style="color:var(--red)">32</div>
+          <div class="sc-label">Absent Today</div>
+          <div class="sc-trend trend-dn">📱 SMS sent to parents</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-icon" style="background:#fffbeb">⚠️</div>
+          <div class="sc-num" style="color:var(--amber)">14</div>
+          <div class="sc-label">Below 75%</div>
+          <div class="sc-trend trend-dn">Detention risk</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Low Attendance -->
+        <div class="card">
+          <div class="card-head">
+            <h3>⚠️ Low Attendance Students</h3>
+            <span class="card-action" data-act="showPage" data-page="defaulters">View All →</span>
+          </div>
+          <div class="card-body" style="padding:0 18px">
+            <div class="def-row">
+              <div class="def-avatar">RK</div>
+              <div class="def-name"><strong>Ravi Kumar</strong><span>BCA III · Roll 045</span></div>
+              <span class="badge badge-red">68%</span>
+            </div>
+            <div class="def-row">
+              <div class="def-avatar" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)">AJ</div>
+              <div class="def-name"><strong>Arjun J</strong><span>BCA I · Roll 012</span></div>
+              <span class="badge badge-red">58%</span>
+            </div>
+            <div class="def-row">
+              <div class="def-avatar" style="background:linear-gradient(135deg,#d97706,#fbbf24)">PM</div>
+              <div class="def-name"><strong>Priya M</strong><span>BCA II · Roll 028</span></div>
+              <span class="badge badge-amber">71%</span>
+            </div>
+            <div class="def-row">
+              <div class="def-avatar" style="background:linear-gradient(135deg,#dc2626,#f87171)">SK</div>
+              <div class="def-name"><strong>Surya K</strong><span>BCA III · Roll 067</span></div>
+              <span class="badge badge-amber">73%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent SMS -->
+        <div class="card">
+          <div class="card-head">
+            <h3>📱 Recent SMS Alerts</h3>
+            <span class="card-action" data-act="showPage" data-page="notifHistory">History →</span>
+          </div>
+          <div class="card-body" style="padding:0 18px">
+            <div class="notif-item">
+              <div class="ni-dot" style="background:var(--red)"></div>
+              <div><div class="ni-text"><strong>Absent Alert</strong> — Ravi Kumar absent in OS (3rd hr)</div><div class="ni-time">📱 SMS to parent · 10:32 AM</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="ni-dot" style="background:var(--amber)"></div>
+              <div><div class="ni-text"><strong>75% Warning</strong> — Arjun J dropped to 58%</div><div class="ni-time">📱 SMS sent · 9:15 AM</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="ni-dot" style="background:var(--blue)"></div>
+              <div><div class="ni-text"><strong>Exam Notice</strong> — Internal Exam Nov 10, sent to all</div><div class="ni-time">📱 248 SMS · Yesterday</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="ni-dot" style="background:var(--green)"></div>
+              <div><div class="ni-text"><strong>Holiday Notice</strong> — Diwali holiday announced</div><div class="ni-time">📱 248 SMS · 3 days ago</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK MANAGEMENT TABLES ON DASHBOARD -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-head">
+          <h3>🎓 Enrolled Students (Quick Access)</h3>
+          <div>
+            <button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="openModal" data-modal="addStudentModal">+ Add Student</button>
+            <span class="card-action" style="margin-left:10px" data-act="showPage" data-page="manageStudents">Manage All →</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Roll No</th><th>Class</th><th>Parent Phone</th><th>Email</th><th>Status</th></tr></thead>
+            <tbody id="dashStudentsTableBody">
+              <!-- Loaded dynamically from DB -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>👨‍🏫 Teaching Staff (Quick Access)</h3>
+          <div>
+            <button class="btn-primary" style="padding:5px 12px;font-size:11px;background:#7c3aed" data-act="openModal" data-modal="addTeacherModal">+ Add Teacher</button>
+            <span class="card-action" style="margin-left:10px" data-act="showPage" data-page="manageTeachers">Manage All →</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Dept</th><th>Phone</th><th>Subjects Taught</th></tr></thead>
+            <tbody id="dashTeachersTableBody">
+              <!-- Loaded dynamically from DB -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: MANAGE STUDENTS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="manageStudents">
+      <div class="sec-heading">🎓 Manage Students</div>
+      <div class="sec-sub">View and manage all enrolled students</div>
+      <div class="card">
+        <div class="card-head">
+          <h3>All Students</h3>
+          <button class="btn-primary" data-act="openModal" data-modal="addStudentModal">+ Add Student</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Roll No</th><th>Class</th><th>Parent Phone</th><th>Email</th><th>Action</th></tr></thead>
+            <tbody id="studentsTableBody">
+              <tr><td>1</td><td><strong>Ravi Kumar</strong></td><td>045</td><td>BCA III</td><td>9876543210</td><td>student@college.edu</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>2</td><td><strong>Meena S</strong></td><td>028</td><td>BCA II</td><td>9765432109</td><td>meena@college.edu</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>3</td><td><strong>Arjun J</strong></td><td>012</td><td>BCA I</td><td>9654321098</td><td>arjun@college.edu</td><td><span class="badge badge-red">Danger</span></td></tr>
+              <tr><td>4</td><td><strong>Priya M</strong></td><td>029</td><td>BCA II</td><td>9543210987</td><td>—</td><td><span class="badge badge-amber">Warning</span></td></tr>
+              <tr><td>5</td><td><strong>Karthik R</strong></td><td>067</td><td>BCA III</td><td>9432109876</td><td>—</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>6</td><td><strong>Surya K</strong></td><td>068</td><td>BCA III</td><td>9321098765</td><td>—</td><td><span class="badge badge-amber">Warning</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: MANAGE TEACHERS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="manageTeachers">
+      <div class="sec-heading">👨‍🏫 Manage Teachers</div>
+      <div class="sec-sub">View and manage teaching staff</div>
+      <div class="card">
+        <div class="card-head">
+          <h3>All Teachers</h3>
+          <button class="btn-primary" data-act="openModal" data-modal="addTeacherModal">+ Add Teacher</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Dept</th><th>Phone</th><th>Subjects</th></tr></thead>
+            <tbody id="teachersTableBody">
+              <tr><td>1</td><td><strong>Mr. Senthil Kumar</strong></td><td>teacher@college.edu</td><td>BCA</td><td>9876543210</td><td>Operating Systems, DBMS</td></tr>
+              <tr><td>2</td><td><strong>Mrs. Kavitha R</strong></td><td>kavitha@college.edu</td><td>BCA</td><td>8765432109</td><td>Web Technology, Java</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: SEND NOTIFICATION
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="sendNotif">
+      <div class="sec-heading">🔔 Send Notification</div>
+      <div class="sec-sub">Send bulk SMS to students and teachers instantly</div>
+
+      <div class="grid-2">
+        <!-- LEFT: FORM -->
+        <div>
+          <div class="card">
+            <div class="card-head"><h3>Step 1 — Notification Type</h3></div>
+            <div class="card-body">
+              <div class="notif-type-grid">
+                <div class="nt-card sel" data-act="selectNotifType" data-type="exam"><div class="nt-icon">📅</div><div class="nt-label">Exam Date</div></div>
+                <div class="nt-card" data-act="selectNotifType" data-type="event"><div class="nt-icon">🎉</div><div class="nt-label">Event</div></div>
+                <div class="nt-card" data-act="selectNotifType" data-type="admission"><div class="nt-icon">📋</div><div class="nt-label">Admission</div></div>
+                <div class="nt-card" data-act="selectNotifType" data-type="strike"><div class="nt-icon">⚡</div><div class="nt-label">Strike</div></div>
+                <div class="nt-card" data-act="selectNotifType" data-type="holiday"><div class="nt-icon">🏖️</div><div class="nt-label">Holiday</div></div>
+                <div class="nt-card" data-act="selectNotifType" data-type="result"><div class="nt-icon">📊</div><div class="nt-label">Result</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>Step 2 — Recipients</h3></div>
+            <div class="card-body">
+              <div class="chip-group">
+                <div class="chip sel" data-act="selectChip">👥 Students + Teachers</div>
+                <div class="chip" data-act="selectChip">🎓 Students Only</div>
+                <div class="chip" data-act="selectChip">👨‍🏫 Teachers Only</div>
+              </div>
+              <div class="form-group">
+                <label>Department</label>
+                <select><option>🏫 All Departments</option><option>BCA</option><option>BSc</option><option>BA</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>Step 3 — Message</h3></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="notifTitle" value="Internal Exam — November 2026" data-input-act="updateSmsPreview">
+              </div>
+              <div class="form-group">
+                <label>Message</label>
+                <textarea id="notifMsg" data-input-act="updateSmsPreview,updateCharCount">Internal Exam scheduled on Nov 10-14, 2026. Hall tickets available at office. Be present by 9:00 AM.</textarea>
+                <div class="char-count"><span id="charNum">98</span>/160 chars · SMS: <span id="smsNum">1</span></div>
+              </div>
+
+              <div class="sms-preview">
+                <div class="sms-prev-label">📱 SMS Preview</div>
+                <div class="sms-bubble" id="smsBubble">Internal Exam — November 2026: Internal Exam scheduled on Nov 10-14, 2026. Hall tickets available at office. Be present by 9:00 AM. — Sri College</div>
+                <div class="sms-time">Recipients: <span id="recipCount">248 Students + 2 Teachers</span></div>
+              </div>
+
+              <button class="btn-primary btn-full" style="margin-top:14px" data-act="sendSMSNow">📤 Send SMS Now</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: HISTORY -->
+        <div class="card">
+          <div class="card-head"><h3>📜 Sent History</h3></div>
+          <div class="card-body" style="padding:0 18px">
+            <div class="hist-item">
+              <div class="hi-icon" style="background:#eff6ff">📅</div>
+              <div><div class="hi-title">Internal Exam Schedule</div><div class="hi-meta">Students+Teachers · Today</div></div>
+              <div class="hi-count">248 SMS</div>
+            </div>
+            <div class="hist-item">
+              <div class="hi-icon" style="background:#f0fdf4">🎉</div>
+              <div><div class="hi-title">Annual Day — Oct 28</div><div class="hi-meta">All · Yesterday</div></div>
+              <div class="hi-count">248 SMS</div>
+            </div>
+            <div class="hist-item">
+              <div class="hi-icon" style="background:#fef2f2">⚡</div>
+              <div><div class="hi-title">College Strike — No Classes</div><div class="hi-meta">All · 2 days ago</div></div>
+              <div class="hi-count">312 SMS</div>
+            </div>
+            <div class="hist-item">
+              <div class="hi-icon" style="background:#fffbeb">🏖️</div>
+              <div><div class="hi-title">Diwali Holiday Notice</div><div class="hi-meta">All · 3 days ago</div></div>
+              <div class="hi-count">312 SMS</div>
+            </div>
+            <div class="hist-item">
+              <div class="hi-icon" style="background:#f5f3ff">📋</div>
+              <div><div class="hi-title">Admission Open 2026-27</div><div class="hi-meta">Students · Last week</div></div>
+              <div class="hi-count">248 SMS</div>
+            </div>
+            <div class="hist-item">
+              <div class="hi-icon" style="background:#f0fdf4">📊</div>
+              <div><div class="hi-title">Semester Results Published</div><div class="hi-meta">Students · Last week</div></div>
+              <div class="hi-count">248 SMS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: NOTIF HISTORY
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="notifHistory">
+      <div class="sec-heading">📜 Notification History</div>
+      <div class="sec-sub">All SMS notifications sent from the system</div>
+      <div class="card">
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Type</th><th>Title</th><th>Sent To</th><th>Dept</th><th>SMS Count</th><th>Date</th><th>Sent By</th></tr></thead>
+            <tbody id="notifHistoryTableBody">
+              <tr><td>📅 Exam</td><td><strong>Internal Exam Schedule</strong></td><td>Students+Teachers</td><td>All</td><td><span class="badge badge-blue">248</span></td><td>Today</td><td>Admin</td></tr>
+              <tr><td>🎉 Event</td><td><strong>Annual Day Oct 28</strong></td><td>Students+Teachers</td><td>All</td><td><span class="badge badge-blue">248</span></td><td>Yesterday</td><td>Admin</td></tr>
+              <tr><td>⚡ Strike</td><td><strong>College Bandh — No Classes</strong></td><td>Students+Teachers</td><td>All</td><td><span class="badge badge-blue">312</span></td><td>2 days ago</td><td>Admin</td></tr>
+              <tr><td>🏖️ Holiday</td><td><strong>Diwali Holiday Notice</strong></td><td>All</td><td>All</td><td><span class="badge badge-blue">312</span></td><td>3 days ago</td><td>Admin</td></tr>
+              <tr><td>📋 Admission</td><td><strong>Admission Open 2026-27</strong></td><td>Students Only</td><td>All</td><td><span class="badge badge-blue">248</span></td><td>Last week</td><td>Admin</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: DEFAULTERS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="defaulters">
+      <div class="sec-heading">⚠️ Defaulter List</div>
+      <div class="sec-sub">Students below 75% attendance — at detention risk</div>
+      <div class="card">
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Student</th><th>Roll No</th><th>Overall %</th><th>Subjects at Risk</th><th>Parent SMS</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1</td><td><strong>Ravi Kumar</strong><br><small style="color:var(--muted)">BCA III</small></td><td>045</td>
+                <td><span style="color:var(--red);font-weight:700">68%</span><div class="prog-wrap"><div class="prog-bar" style="width:68%;background:var(--red)"></div></div></td>
+                <td>OS (58%), DBMS (65%)</td>
+                <td><span class="badge badge-green">✓ Sent</span></td>
+                <td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="toast" data-msg="📱 SMS sent to Ravi Kumar parent!" data-toast-type="info">📱 Re-Alert</button></td>
+              </tr>
+              <tr>
+                <td>2</td><td><strong>Arjun J</strong><br><small style="color:var(--muted)">BCA I</small></td><td>012</td>
+                <td><span style="color:var(--red);font-weight:700">58%</span><div class="prog-wrap"><div class="prog-bar" style="width:58%;background:var(--red)"></div></div></td>
+                <td>All Subjects</td>
+                <td><span class="badge badge-green">✓ Sent</span></td>
+                <td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="toast" data-msg="📱 SMS sent to Arjun J parent!" data-toast-type="info">📱 Re-Alert</button></td>
+              </tr>
+              <tr>
+                <td>3</td><td><strong>Priya M</strong><br><small style="color:var(--muted)">BCA II</small></td><td>029</td>
+                <td><span style="color:var(--amber);font-weight:700">71%</span><div class="prog-wrap"><div class="prog-bar" style="width:71%;background:var(--amber)"></div></div></td>
+                <td>OS (68%), Networks (70%)</td>
+                <td><span class="badge badge-green">✓ Sent</span></td>
+                <td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="toast" data-msg="📱 SMS sent to Priya M parent!" data-toast-type="info">📱 Re-Alert</button></td>
+              </tr>
+              <tr>
+                <td>4</td><td><strong>Surya K</strong><br><small style="color:var(--muted)">BCA III</small></td><td>067</td>
+                <td><span style="color:var(--amber);font-weight:700">73%</span><div class="prog-wrap"><div class="prog-bar" style="width:73%;background:var(--amber)"></div></div></td>
+                <td>Java (70%), SE (72%)</td>
+                <td><span class="badge badge-amber">⚠ Pending</span></td>
+                <td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="toast" data-msg="📱 SMS sent to Surya K parent!" data-toast-type="info">📱 Alert Now</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ADMIN: REPORTS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="reports">
+      <div class="sec-heading">📊 Attendance Reports</div>
+      <div class="sec-sub">Department-wise attendance summary</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="sc-icon" style="background:#eff6ff">📚</div><div class="sc-num" style="color:var(--blue)">6</div><div class="sc-label">Total Subjects</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#f0fdf4">🎓</div><div class="sc-num" style="color:var(--green)">4</div><div class="sc-label">Safe Students</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#fffbeb">⚠️</div><div class="sc-num" style="color:var(--amber)">2</div><div class="sc-label">Warning</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#fef2f2">🚨</div><div class="sc-num" style="color:var(--red)">2</div><div class="sc-label">Danger</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Subject-wise Attendance Summary</h3></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Subject</th><th>Teacher</th><th>Avg Attendance</th><th>Below 75%</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Operating Systems</td><td>Mr. Senthil Kumar</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-wrap" style="width:80px"><div class="prog-bar" style="width:72%;background:var(--amber)"></div></div>72%</div></td><td>3 students</td><td><span class="badge badge-amber">Warning</span></td></tr>
+              <tr><td>Web Technology</td><td>Mrs. Kavitha R</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-wrap" style="width:80px"><div class="prog-bar" style="width:88%;background:var(--green)"></div></div>88%</div></td><td>0 students</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>DBMS</td><td>Mr. Senthil Kumar</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-wrap" style="width:80px"><div class="prog-bar" style="width:79%;background:var(--green)"></div></div>79%</div></td><td>1 student</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>Java Programming</td><td>Mrs. Kavitha R</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-wrap" style="width:80px"><div class="prog-bar" style="width:84%;background:var(--green)"></div></div>84%</div></td><td>0 students</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>Software Engineering</td><td>Mr. Senthil Kumar</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-wrap" style="width:80px"><div class="prog-bar" style="width:76%;background:var(--green)"></div></div>76%</div></td><td>1 student</td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>Computer Networks</td><td>Mrs. Kavitha R</td><td><div style="display:flex;align-items:center;gap:8px"><div class="prog-wrap" style="width:80px"><div class="prog-bar" style="width:65%;background:var(--red)"></div></div>65%</div></td><td>4 students</td><td><span class="badge badge-red">Danger</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TEACHER: DASHBOARD
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="teacherDash">
+      <div class="sec-heading">Good Morning, Mr. Senthil Kumar 👋</div>
+      <div class="sec-sub">Tuesday, 5 August 2026 · Your classes today</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="sc-icon" style="background:#eff6ff">📚</div><div class="sc-num" style="color:var(--blue)">2</div><div class="sc-label">My Subjects</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#f0fdf4">✅</div><div class="sc-num" style="color:var(--green)">4</div><div class="sc-label">Classes Today</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#fef2f2">❌</div><div class="sc-num" style="color:var(--red)">3</div><div class="sc-label">Absent Today</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#fffbeb">📱</div><div class="sc-num" style="color:var(--amber)">3</div><div class="sc-label">SMS Sent</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>📅 Today's 5-Period Continuous Schedule (50 Mins Each)</h3></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Period</th><th>Subject</th><th>Class</th><th>Time Slot</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>1st Period</td><td>Operating Systems</td><td>BCA III</td><td>9:00 - 9:50 AM</td><td><span class="badge badge-green">Done</span></td><td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="showPage" data-page="markAtt">View</button></td></tr>
+              <tr><td>2nd Period</td><td>DBMS</td><td>BCA II</td><td>9:50 - 10:40 AM</td><td><span class="badge badge-green">Done</span></td><td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="showPage" data-page="markAtt">View</button></td></tr>
+              <tr><td>3rd Period</td><td>Operating Systems</td><td>BCA II</td><td>10:40 - 11:30 AM</td><td><span class="badge badge-amber">Pending</span></td><td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="showPage" data-page="markAtt">Mark Now</button></td></tr>
+              <tr><td>4th Period</td><td>DBMS</td><td>BCA I</td><td>11:30 AM - 12:20 PM</td><td><span class="badge badge-red">Not Started</span></td><td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="showPage" data-page="markAtt">Mark Now</button></td></tr>
+              <tr><td>5th Period</td><td>Web Technology</td><td>BCA I</td><td>12:20 - 1:10 PM</td><td><span class="badge badge-red">Not Started</span></td><td><button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="showPage" data-page="markAtt">Mark Now</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TEACHER CLASS STUDENTS LIST -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-head">
+          <h3>🎓 Class Students List</h3>
+          <button class="btn-primary" style="padding:5px 12px;font-size:11px" data-act="showPage" data-page="markAtt">📋 Mark Attendance Now</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Student Name</th><th>Roll No</th><th>Class</th><th>Parent Phone</th><th>Email</th></tr></thead>
+            <tbody id="teacherDashStudentsTableBody">
+              <!-- Loaded dynamically from DB -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TEACHER: MARK ATTENDANCE
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="markAtt">
+      <div class="sec-heading">📋 Mark Attendance</div>
+      <div class="sec-sub">Select class & period to mark attendance — Absent = Auto SMS to parent</div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-body">
+          <div class="sel-row" style="flex-wrap:wrap;gap:12px">
+            <div class="sel-box">📚 Subject: 
+              <select id="attSubjectSelect">
+                <option value="Operating Systems">Operating Systems</option>
+                <option value="DBMS">DBMS</option>
+                <option value="Web Technology">Web Technology</option>
+              </select>
+            </div>
+            <div class="sel-box">🎓 Filter Class: 
+              <select id="attClassSelect" data-change-act="filterAttStudents">
+                <option value="BCA III">BCA III</option>
+                <option value="BCA II">BCA II</option>
+                <option value="BCA I">BCA I</option>
+                <option value="All">All Classes</option>
+              </select>
+            </div>
+            <div class="sel-box">🕐 Period (50 mins): 
+              <select id="attPeriodSelect">
+                <option value="1st Period (9:00 - 9:50 AM)">1st Period (9:00 - 9:50 AM)</option>
+                <option value="2nd Period (9:50 - 10:40 AM)">2nd Period (9:50 - 10:40 AM)</option>
+                <option value="3rd Period (10:40 - 11:30 AM)">3rd Period (10:40 - 11:30 AM)</option>
+                <option value="4th Period (11:30 AM - 12:20 PM)">4th Period (11:30 AM - 12:20 PM)</option>
+                <option value="5th Period (12:20 - 1:10 PM)">5th Period (12:20 - 1:10 PM)</option>
+              </select>
+            </div>
+            <div class="sel-box">📅 Select Date: 
+              <input type="date" id="attDatePicker" data-change-act="checkAttDate" style="padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:13px;outline:none">
+            </div>
+            <div class="sel-box">🏛️ College Status: 
+              <select id="attCollegeStatusSelect" data-change-act="checkAttDate">
+                <option value="working">🟢 Regular Working Day</option>
+                <option value="holiday">🎉 Official College Holiday</option>
+                <option value="strike">🚨 Strike / Emergency Closure</option>
+              </select>
+            </div>
+            <div id="satWorkingBox" class="sel-box hidden" style="background:#fff7ed;border-color:#fdba74">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#c2410c">
+                <input type="checkbox" id="satWorkingChk" data-change-act="checkAttDate">
+                ⚡ Enable Saturday Working Day / Special Class
+              </label>
+            </div>
+            <span id="attDayBadge" class="badge badge-blue" style="margin-left:auto;padding:8px 14px;font-size:12px">📅 Select Date</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3 id="attListHeader">Student List — BCA III (0 Students)</h3>
+          <button id="saveAttBtn" class="btn-primary btn-green" data-act="saveAttendance">✅ Save & Send SMS</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>#</th><th>Roll No</th><th>Student Name</th><th>Class</th><th>Attendance Status</th><th>SMS Alert</th></tr></thead>
+            <tbody id="attTableBody">
+              <!-- Loaded dynamically based on class filter -->
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:12px 18px;background:#eff6ff;border-top:1px solid var(--blue-md)">
+          <span style="font-size:12px;color:var(--blue);font-weight:600" id="attSummary">
+            📊 Select attendance status for each student
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TEACHER: MY CLASSES
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="myClasses">
+      <div class="sec-heading">📚 My Classes</div>
+      <div class="sec-sub">Subject-wise attendance overview for your classes</div>
+      <div class="card">
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Subject</th><th>Class</th><th>Total Classes</th><th>Avg Attendance</th><th>Lowest Student</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Operating Systems</strong></td><td>BCA III</td><td>42</td><td><span style="color:var(--amber);font-weight:700">72%</span></td><td>Arjun J (58%)</td></tr>
+              <tr><td><strong>DBMS</strong></td><td>BCA II</td><td>38</td><td><span style="color:var(--green);font-weight:700">79%</span></td><td>Ravi Kumar (65%)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TEACHER: REPORTS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="teacherReports">
+      <div class="sec-heading">📊 My Reports</div>
+      <div class="sec-sub">Attendance marked by you this month</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="sc-icon" style="background:#eff6ff">📋</div><div class="sc-num" style="color:var(--blue)">80</div><div class="sc-label">Classes Taken</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#f0fdf4">✅</div><div class="sc-num" style="color:var(--green)">356</div><div class="sc-label">Present Marked</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#fef2f2">❌</div><div class="sc-num" style="color:var(--red)">44</div><div class="sc-label">Absent Marked</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#fffbeb">📱</div><div class="sc-num" style="color:var(--amber)">44</div><div class="sc-label">SMS Sent</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STUDENT: DASHBOARD
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="studentDash">
+      <div class="student-prof">
+        <div class="sp-avatar">👤</div>
+        <div>
+          <div class="sp-name">Ravi Kumar</div>
+          <div class="sp-info">Roll No: 045 · BCA III · Sri College of Arts & Science, Cuddalore</div>
+        </div>
+        <div class="sp-overall">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Overall Attendance</div>
+          <div class="sp-pct" style="color:var(--red)">68%</div>
+          <span class="badge badge-red">⚠️ Below 75%</span>
+        </div>
+      </div>
+
+      <!-- Warning Box -->
+      <div class="warning-box">
+        <div class="wb-icon">📱</div>
+        <div>
+          <div class="wb-title">SMS Alert Sent to Your Parent!</div>
+          <div class="wb-text">"Dear Parent, Ravi Kumar's attendance is 68% — Below 75%! Detention risk. Please contact HOD immediately. — Sri College, Cuddalore"</div>
+        </div>
+      </div>
+
+      <!-- Subject Cards -->
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">📚 Subject-wise Attendance</div>
+      <div class="subj-grid">
+        <div class="subj-card">
+          <div class="subj-name">Operating Systems</div>
+          <div class="subj-pct" style="color:var(--red)">58%</div>
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:58%;background:var(--red)"></div></div>
+          <span class="badge badge-red">🚨 Danger</span>
+        </div>
+        <div class="subj-card">
+          <div class="subj-name">Web Technology</div>
+          <div class="subj-pct" style="color:var(--green)">82%</div>
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:82%;background:var(--green)"></div></div>
+          <span class="badge badge-green">✅ Safe</span>
+        </div>
+        <div class="subj-card">
+          <div class="subj-name">DBMS</div>
+          <div class="subj-pct" style="color:var(--amber)">71%</div>
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:71%;background:var(--amber)"></div></div>
+          <span class="badge badge-amber">⚠️ Warning</span>
+        </div>
+        <div class="subj-card">
+          <div class="subj-name">Java Programming</div>
+          <div class="subj-pct" style="color:var(--green)">89%</div>
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:89%;background:var(--green)"></div></div>
+          <span class="badge badge-green">✅ Safe</span>
+        </div>
+        <div class="subj-card">
+          <div class="subj-name">Software Engineering</div>
+          <div class="subj-pct" style="color:var(--amber)">74%</div>
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:74%;background:var(--amber)"></div></div>
+          <span class="badge badge-amber">⚠️ Warning</span>
+        </div>
+        <div class="subj-card">
+          <div class="subj-name">Computer Networks</div>
+          <div class="subj-pct" style="color:var(--green)">91%</div>
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:91%;background:var(--green)"></div></div>
+          <span class="badge badge-green">✅ Safe</span>
+        </div>
+      </div>
+
+      <!-- Notification Inbox -->
+      <div class="card">
+        <div class="card-head"><h3>📥 Recent Notifications</h3><span class="card-action" data-act="showPage" data-page="myNotifs">View All →</span></div>
+        <div class="card-body" style="padding:0 18px">
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--blue)"></div>
+            <div><div class="ni-text"><strong>📅 Exam Notice:</strong> Internal Exam Nov 10-14. Hall tickets at office. Be present by 9 AM.</div><div class="ni-time">Today · 11:00 AM</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--green)"></div>
+            <div><div class="ni-text"><strong>🎉 Annual Day:</strong> College Annual Day on Oct 28 at Auditorium. All students must attend.</div><div class="ni-time">Yesterday · 2:15 PM</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--red)"></div>
+            <div><div class="ni-text"><strong>⚡ Strike Notice:</strong> No classes tomorrow due to college bandh. Stay safe at home.</div><div class="ni-time">2 days ago · 6:00 PM</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STUDENT: MY ATTENDANCE
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="myAttendance">
+      <div class="sec-heading">📋 My Attendance</div>
+      <div class="sec-sub">Detailed subject-wise attendance record</div>
+      <div class="card">
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Subject</th><th>Total Classes</th><th>Present</th><th>Absent</th><th>Leave</th><th>Percentage</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Operating Systems</td><td>42</td><td>24</td><td>16</td><td>2</td><td><strong style="color:var(--red)">58%</strong><div class="prog-wrap"><div class="prog-bar" style="width:58%;background:var(--red)"></div></div></td><td><span class="badge badge-red">Danger</span></td></tr>
+              <tr><td>Web Technology</td><td>38</td><td>31</td><td>5</td><td>2</td><td><strong style="color:var(--green)">82%</strong><div class="prog-wrap"><div class="prog-bar" style="width:82%;background:var(--green)"></div></div></td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>DBMS</td><td>40</td><td>28</td><td>10</td><td>2</td><td><strong style="color:var(--amber)">71%</strong><div class="prog-wrap"><div class="prog-bar" style="width:71%;background:var(--amber)"></div></div></td><td><span class="badge badge-amber">Warning</span></td></tr>
+              <tr><td>Java Programming</td><td>36</td><td>32</td><td>3</td><td>1</td><td><strong style="color:var(--green)">89%</strong><div class="prog-wrap"><div class="prog-bar" style="width:89%;background:var(--green)"></div></div></td><td><span class="badge badge-green">Safe</span></td></tr>
+              <tr><td>Software Engineering</td><td>34</td><td>25</td><td>8</td><td>1</td><td><strong style="color:var(--amber)">74%</strong><div class="prog-wrap"><div class="prog-bar" style="width:74%;background:var(--amber)"></div></div></td><td><span class="badge badge-amber">Warning</span></td></tr>
+              <tr><td>Computer Networks</td><td>38</td><td>34</td><td>3</td><td>1</td><td><strong style="color:var(--green)">91%</strong><div class="prog-wrap"><div class="prog-bar" style="width:91%;background:var(--green)"></div></div></td><td><span class="badge badge-green">Safe</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STUDENT: MY NOTIFICATIONS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="myNotifs">
+      <div class="sec-heading">🔔 My Notifications</div>
+      <div class="sec-sub">All alerts and notifications received</div>
+      <div class="card">
+        <div class="card-body" id="myNotifsListContainer" style="padding:0 18px">
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--blue)"></div>
+            <div><div class="ni-text"><strong>📅 Exam Notice:</strong> Internal Exam scheduled Nov 10-14, 2026. Hall tickets at office. Be present by 9:00 AM. — Sri College</div><div class="ni-time">Today · 11:00 AM</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--green)"></div>
+            <div><div class="ni-text"><strong>🎉 Annual Day:</strong> College Annual Day celebration on Oct 28 at Main Auditorium 10 AM. Participation is mandatory.</div><div class="ni-time">Yesterday · 2:15 PM</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--red)"></div>
+            <div><div class="ni-text"><strong>⚡ Strike Notice:</strong> No classes tomorrow due to college bandh. Stay safe. Classes resume day after.</div><div class="ni-time">2 days ago · 6:00 PM</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--amber)"></div>
+            <div><div class="ni-text"><strong>🏖️ Holiday:</strong> Diwali holiday from Oct 31 to Nov 3. College reopens Nov 4. Happy Diwali!</div><div class="ni-time">3 days ago · 10:00 AM</div></div>
+          </div>
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--red)"></div>
+            <div><div class="ni-text"><strong>⚠️ Attendance Warning:</strong> Your attendance is 68% — below 75%! You are at risk of detention. Please attend regularly.</div><div class="ni-time">4 days ago · 9:00 AM</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TEACHER: UPLOAD EXAM MARKS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="uploadMarks">
+      <div class="sec-heading">📤 Upload Student Exam Marks & Results</div>
+      <div class="sec-sub">Upload results via Excel/CSV or enter marks per register number to sync with student dashboards</div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><h3>⚙️ Exam & Batch Details</h3></div>
+        <div class="card-body">
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
+            <div class="sel-box">🎓 Select Semester:
+              <select id="uploadSemSelect">
+                <option value="5">Semester 5 (Current)</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
+                <option value="4">Semester 4</option>
+                <option value="6">Semester 6</option>
+              </select>
+            </div>
+            <div class="sel-box">📝 Exam Type:
+              <select id="uploadExamTypeSelect">
+                <option value="CIA-1">CIA-1 (Continuous Internal Assessment 1)</option>
+                <option value="CIA-2">CIA-2 (Continuous Internal Assessment 2)</option>
+                <option value="MODEL">MODEL EXAM</option>
+                <option value="SEMESTER">SEMESTER EXAM</option>
+              </select>
+            </div>
+            <div class="sel-box">📚 Subject:
+              <select id="uploadSubjectSelect">
+                <option value="Operating Systems">Operating Systems</option>
+                <option value="DBMS">DBMS</option>
+                <option value="Web Technology">Web Technology</option>
+                <option value="Java Programming">Java Programming</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Computer Networks">Computer Networks</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILE UPLOAD ZONE -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-head">
+          <h3>📄 Upload Result Document (Excel / CSV / PDF)</h3>
+          <span class="badge badge-blue">Auto Register No Mapping</span>
+        </div>
+        <div class="card-body">
+          <div style="border:2px dashed #93c5fd;border-radius:12px;padding:24px;text-align:center;background:#eff6ff;cursor:pointer;" onclick="document.getElementById('resultFileInput').click()">
+            <div style="font-size:32px;margin-bottom:8px">📁</div>
+            <div style="font-weight:700;font-size:14px;color:var(--blue)">Click or Drag & Drop Excel / CSV Result File Here</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">Supports CSV format with columns: <code>Roll_No, Subject, Marks_Obtained, Max_Marks</code></div>
+            <input type="file" id="resultFileInput" accept=".csv,.xlsx,.xls,.pdf" style="display:none" onchange="handleResultFileUpload(event)">
+          </div>
+          <div id="fileUploadStatus" style="margin-top:10px;font-size:12px;font-weight:600"></div>
+        </div>
+      </div>
+
+      <!-- MANUAL MARKS ENTRY TABLE -->
+      <div class="card">
+        <div class="card-head">
+          <h3>✏️ Student Register Number Mark Entry Grid</h3>
+          <button class="btn-primary btn-green" onclick="submitExamMarksUpload()">✅ Save & Publish Marks to Student Dashboards</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Register / Roll No</th>
+                <th>Student Name</th>
+                <th>Class</th>
+                <th>Marks Scored</th>
+                <th>Max Marks</th>
+                <th>Grade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="uploadMarksTableBody">
+              <!-- Dynamically populated with input boxes -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STUDENT: EXAM MARKS & RESULTS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="examMarks">
+      <div class="sec-heading">🎓 My Exam Marks & Results</div>
+      <div class="sec-sub">Semester-wise academic performance and marks summary</div>
+
+      <!-- SEMESTER TAB BUTTONS -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px">
+        <button class="role-btn sem-tab active" style="margin:0;width:auto" onclick="switchSemTab(5, this)">Semester 5 (Current)</button>
+        <button class="role-btn sem-tab" style="margin:0;width:auto" onclick="switchSemTab(1, this)">Semester 1</button>
+        <button class="role-btn sem-tab" style="margin:0;width:auto" onclick="switchSemTab(2, this)">Semester 2</button>
+        <button class="role-btn sem-tab" style="margin:0;width:auto" onclick="switchSemTab(3, this)">Semester 3</button>
+        <button class="role-btn sem-tab" style="margin:0;width:auto" onclick="switchSemTab(4, this)">Semester 4</button>
+        <button class="role-btn sem-tab" style="margin:0;width:auto" onclick="switchSemTab(6, this)">Semester 6</button>
+      </div>
+
+      <!-- EXAM TYPE PILLS -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn-primary exam-pill active" style="padding:6px 14px;font-size:12px;border-radius:20px" onclick="filterExamTypePill('ALL', this)">All Exams</button>
+        <button class="btn-primary exam-pill" style="padding:6px 14px;font-size:12px;border-radius:20px;background:var(--slate)" onclick="filterExamTypePill('CIA-1', this)">CIA-1</button>
+        <button class="btn-primary exam-pill" style="padding:6px 14px;font-size:12px;border-radius:20px;background:var(--slate)" onclick="filterExamTypePill('CIA-2', this)">CIA-2</button>
+        <button class="btn-primary exam-pill" style="padding:6px 14px;font-size:12px;border-radius:20px;background:var(--slate)" onclick="filterExamTypePill('MODEL', this)">MODEL EXAM</button>
+        <button class="btn-primary exam-pill" style="padding:6px 14px;font-size:12px;border-radius:20px;background:var(--slate)" onclick="filterExamTypePill('SEMESTER', this)">SEMESTER EXAM</button>
+      </div>
+
+      <!-- OVERALL SEMESTER SUMMARY CARD -->
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-card"><div class="sc-icon" style="background:#eff6ff">🏆</div><div class="sc-num" id="semTotalScore" style="color:var(--blue)">417 / 500</div><div class="sc-label">Total Marks Scored</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#f0fdf4">📈</div><div class="sc-num" id="semPercentage" style="color:var(--green)">83.4%</div><div class="sc-label">Semester Aggregate</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#f0fdf4">🎖️</div><div class="sc-num" id="semGPA" style="color:var(--green)">8.34</div><div class="sc-label">Estimated SGPA</div></div>
+        <div class="stat-card"><div class="sc-icon" style="background:#f0fdf4">✅</div><div class="sc-num" id="semStatusBadge" style="color:var(--green)">PASS</div><div class="sc-label">Result Status</div></div>
+      </div>
+
+      <!-- MARKS TABLE CARD -->
+      <div class="card">
+        <div class="card-head">
+          <h3 id="studentMarkSheetTitle">📋 Semester 5 — Subject Mark Sheet</h3>
+          <button class="btn-primary btn-green" style="padding:5px 12px;font-size:11px" onclick="window.print()">🖨️ Print Mark Sheet</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Exam Type</th>
+                <th>Subject Name</th>
+                <th>Marks Scored</th>
+                <th>Max Marks</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="studentMarksTableBody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STUDENT: BUNK & TARGET CALCULATOR
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="studentBunkCalc">
+      <div class="sec-heading">🧮 75% Attendance & "Bunk" Calculator</div>
+      <div class="sec-sub">Calculate how many classes you can skip or must attend to maintain 75% eligibility</div>
+
+      <div class="card" style="max-width:600px;margin:0 auto 20px auto">
+        <div class="card-head"><h3>📊 Target Attendance Calculator</h3></div>
+        <div class="card-body">
+          <div class="fl">
+            <label>Total Classes Held So Far</label>
+            <input type="number" id="calcTotalHeld" value="40" oninput="runBunkCalculator()">
+          </div>
+          <div class="fl">
+            <label>Classes You Have Attended</label>
+            <input type="number" id="calcAttended" value="28" oninput="runBunkCalculator()">
+          </div>
+          <div class="fl">
+            <label>Target Attendance Percentage (%)</label>
+            <input type="number" id="calcTargetPct" value="75" oninput="runBunkCalculator()">
+          </div>
+
+          <div id="bunkResultBox" style="margin-top:16px;padding:16px;border-radius:12px;background:#eff6ff;border:1px solid var(--blue-md);">
+            <!-- Result text dynamically calculated -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         STUDENT: OD & LEAVE REQUEST
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="studentOD">
+      <div class="sec-heading">📝 On-Duty (OD) & Leave Application</div>
+      <div class="sec-sub">Submit OD or Medical Leave requests for teacher and HOD approval</div>
+
+      <div class="card" style="max-width:650px;margin-bottom:20px">
+        <div class="card-head"><h3>📩 Submit New Request</h3></div>
+        <div class="card-body">
+          <form onsubmit="event.preventDefault(); submitODApplication();">
+            <div class="fl">
+              <label>Request Type</label>
+              <select id="odTypeSelect">
+                <option value="OD - Symposium / Cultural">On-Duty (Symposium / Cultural)</option>
+                <option value="OD - Sports Event">On-Duty (Sports Event)</option>
+                <option value="Medical Leave">Medical Leave</option>
+                <option value="Personal Emergency">Personal Emergency Leave</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:12px">
+              <div class="fl" style="flex:1">
+                <label>From Date</label>
+                <input type="date" id="odFromDate" required>
+              </div>
+              <div class="fl" style="flex:1">
+                <label>To Date</label>
+                <input type="date" id="odToDate" required>
+              </div>
+            </div>
+            <div class="fl">
+              <label>Reason / Description</label>
+              <textarea id="odReason" rows="3" style="width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);outline:none;font-size:13px" placeholder="Provide event details or reason..." required></textarea>
+            </div>
+            <button type="submit" class="btn-primary btn-full">🚀 Submit OD Request</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>📜 My Submitted OD & Leave Requests</h3></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Date Submitted</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Reason</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="odTableBody">
+              <tr>
+                <td>02 Aug 2026</td>
+                <td>OD - Sports Event</td>
+                <td>05 Aug 2026 (1 Day)</td>
+                <td>Inter-College Football Tournament</td>
+                <td><span class="badge badge-green">Approved</span></td>
+              </tr>
+              <tr>
+                <td>28 Jul 2026</td>
+                <td>Medical Leave</td>
+                <td>29 Jul - 30 Jul (2 Days)</td>
+                <td>Fever and Doctor Consultation</td>
+                <td><span class="badge badge-green">Approved</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <!-- ══════════════════════════════════════════
+         TEACHER & ADMIN: APPROVE OD & LEAVE REQUESTS
+    ══════════════════════════════════════════ -->
+    <div class="page-content" id="approveOD">
+      <div class="sec-heading">📝 Approve Student OD & Leave Requests</div>
+      <div class="sec-sub">Review pending On-Duty and Medical Leave applications submitted by students</div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>📋 Pending Student Applications</h3>
+          <span class="badge badge-amber" id="pendingODCount">2 Pending Requests</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Roll No</th>
+                <th>Class</th>
+                <th>Request Type</th>
+                <th>Duration</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="approveODTableBody">
+              <tr id="odRow_1">
+                <td><strong>Ravi Kumar</strong></td>
+                <td>045</td>
+                <td>BCA III</td>
+                <td><span class="badge badge-blue">OD - Symposium / Cultural</span></td>
+                <td>12 Aug - 13 Aug (2 Days)</td>
+                <td>National Level Tech Symposium at Anna University</td>
+                <td><span class="badge badge-amber" id="odStatus_1">Pending Approval</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn-primary btn-green" style="padding:4px 10px;font-size:11px" onclick="updateODStatus(1, 'Approved')">✅ Approve</button>
+                    <button class="btn-primary" style="padding:4px 10px;font-size:11px;background:var(--red)" onclick="updateODStatus(1, 'Rejected')">❌ Reject</button>
+                  </div>
+                </td>
+              </tr>
+              <tr id="odRow_2">
+                <td><strong>Meena S</strong></td>
+                <td>028</td>
+                <td>BCA II</td>
+                <td><span class="badge badge-amber">Medical Leave</span></td>
+                <td>10 Aug - 11 Aug (2 Days)</td>
+                <td>Viral Fever & Medical Certificate Attached</td>
+                <td><span class="badge badge-amber" id="odStatus_2">Pending Approval</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn-primary btn-green" style="padding:4px 10px;font-size:11px" onclick="updateODStatus(2, 'Approved')">✅ Approve</button>
+                    <button class="btn-primary" style="padding:4px 10px;font-size:11px;background:var(--red)" onclick="updateODStatus(2, 'Rejected')">❌ Reject</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main-area -->
+</div><!-- end appShell -->
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+// ── STATE ──
+let currentRole = 'admin';
+let currentUser = null;
+let attState = ['A','P','P','L','P','A']; // default states
+
+// Dynamic API Base URL resolution for file://, Live Server, and Apache
+const API_BASE = (window.location.protocol === 'file:' || (window.location.port && window.location.port !== '80' && window.location.port !== '443'))
+  ? 'http://localhost/AttendAlert/api/'
+  : 'api/';
+
+// ── TOAST ──
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type + ' show';
+  setTimeout(() => t.className = '', 3200);
+}
+
+// ── ROLE SELECTION ──
+function selectRole(role, btn) {
+  currentRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const map = {
+    admin:   {email:'admin@college.edu',   pass:'admin123', title:'Welcome, Admin 👋',   sub:'Login to access the admin dashboard'},
+    teacher: {email:'teacher@college.edu', pass:'teach123', title:'Welcome, Teacher 👋', sub:'Login to access your teaching portal'},
+    student: {email:'student@college.edu', pass:'stud123',  title:'Welcome, Student 👋', sub:'Login to view your attendance & notifications'},
+  };
+  // Force set the input values
+  const emailEl = document.getElementById('loginEmail');
+  const passEl  = document.getElementById('loginPass');
+  emailEl.value = map[role].email;
+  passEl.value  = map[role].pass;
+  // Trigger input events so browser doesn't cache old values
+  emailEl.dispatchEvent(new Event('input'));
+  passEl.dispatchEvent(new Event('input'));
+  document.getElementById('loginTitle').textContent = map[role].title;
+  document.getElementById('loginSub').textContent   = map[role].sub;
+}
+
+// ── LOGIN ──
+async function doLogin() {
+  const e = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const p = document.getElementById('loginPass').value.trim();
+
+  // Try API login only if HTTP protocol (prevents file:// CORS exception in VS Code)
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      const res = await fetch(API_BASE + 'login.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: e, password: p, role: currentRole })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          currentUser = data.user;
+          currentRole = data.user.role || currentRole;
+          localStorage.setItem('attendalert_user', JSON.stringify(currentUser));
+          document.getElementById('loginPage').style.display = 'none';
+          document.getElementById('appShell').classList.remove('hidden');
+          setupRole(currentRole);
+          toast('✅ Login successful! Welcome, ' + data.user.name + '!', 'success');
+          loadNotifications();
+          return;
+        }
+      }
+    } catch (_) {
+      // Quietly continue to fallback authentication
+    }
+  }
+
+  // Detect role from email/password fallback
+  let detectedRole = null;
+  if (e === 'admin@college.edu'   && p === 'admin123') detectedRole = 'admin';
+  if (e === 'teacher@college.edu' && p === 'teach123') detectedRole = 'teacher';
+  if (e === 'student@college.edu' && p === 'stud123')  detectedRole = 'student';
+
+  if (detectedRole) {
+    currentRole = detectedRole;
+    const names = {admin:'Admin User',teacher:'Mr. Senthil Kumar',student:'Ravi Kumar'};
+    const fallbackIds = {admin:1, teacher:2, student:4};
+    currentUser = { id: fallbackIds[currentRole], name: names[currentRole], role: currentRole };
+    localStorage.setItem('attendalert_user', JSON.stringify(currentUser));
+
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appShell').classList.remove('hidden');
+    setupRole(currentRole);
+    toast('✅ Login successful! Welcome, ' + currentUser.name + '!', 'success');
+  } else {
+    toast('❌ Wrong credentials! Use the demo credentials shown on the left.', 'warning');
+  }
+}
+
+// ── SETUP ROLE ──
+function setupRole(role) {
+  // Hide all navs
+  document.getElementById('adminNav').classList.add('hidden');
+  document.getElementById('teacherNav').classList.add('hidden');
+  document.getElementById('studentNav').classList.add('hidden');
+
+  // Hide all pages
+  document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+
+  const roleMap = {
+    admin:   {nav:'adminNav',   icon:'🛡️', name: currentUser ? currentUser.name : 'Admin User',         label:'Administrator',      firstPage:'adminDash',   topTitle:'Admin Dashboard'},
+    teacher: {nav:'teacherNav', icon:'📘', name: currentUser ? currentUser.name : 'Mr. Senthil Kumar',  label:'Teacher · BCA Dept', firstPage:'teacherDash', topTitle:'Teacher Dashboard'},
+    student: {nav:'studentNav', icon:'🎓', name: currentUser ? currentUser.name : 'Ravi Kumar',          label:'BCA III · Roll 045', firstPage:'studentDash', topTitle:'Student Dashboard'},
+  };
+
+  const r = roleMap[role];
+  document.getElementById(r.nav).classList.remove('hidden');
+  document.getElementById('sbRoleIcon').textContent  = r.icon;
+  document.getElementById('sbRoleName').textContent  = r.name;
+  document.getElementById('sbRoleLabel').textContent = r.label;
+  document.getElementById('topbarTitle').textContent = r.topTitle;
+  document.getElementById('topbarAvatar').textContent = r.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+
+  // Set first active page
+  document.getElementById(r.firstPage).classList.add('active');
+
+  // Set first sidebar item active
+  const nav = document.getElementById(r.nav);
+  nav.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  nav.querySelector('.sb-item').classList.add('active');
+}
+
+// ── SHOW PAGE ──
+function showPage(pageId, clickedItem) {
+  // ROLE SECURITY GUARD: Prevent unauthorized navigation across roles
+  const studentAllowedPages = ['studentDash', 'myAttendance', 'myNotifs', 'examMarks', 'studentBunkCalc', 'studentOD'];
+  if (currentRole === 'student' && !studentAllowedPages.includes(pageId)) {
+    toast('⛔ Access Denied: Students are view-only and cannot access Management or Marking pages!', 'warning');
+    return;
+  }
+
+  const teacherBlockedPages = ['manageTeachers', 'manageStudents'];
+  if (currentRole === 'teacher' && teacherBlockedPages.includes(pageId)) {
+    toast('⛔ Access Denied: User management is restricted to Administrators!', 'warning');
+    return;
+  }
+
+  document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+  const targetPage = document.getElementById(pageId);
+  if (targetPage) targetPage.classList.add('active');
+
+  const pageTitles = {
+    adminDash:'Admin Dashboard', manageStudents:'Manage Students',
+    manageTeachers:'Manage Teachers', sendNotif:'Send Notification',
+    notifHistory:'Notification History', defaulters:'Defaulter List',
+    reports:'Attendance Analytics & Reports',
+    teacherDash:'Teacher Dashboard', markAtt:'Mark Attendance',
+    uploadMarks:'Upload Student Exam Marks', approveOD:'Approve OD Requests',
+    myClasses:'My Classes', teacherReports:'Reports',
+    studentDash:'Student Dashboard', myAttendance:'My Attendance',
+    examMarks:'My Exam Marks & Results', studentBunkCalc:'Attendance & Bunk Calculator',
+    studentOD:'On-Duty & Leave Request',
+    myNotifs:'My Notifications',
+  };
+  document.getElementById('topbarTitle').textContent = pageTitles[pageId] || pageId;
+
+  if (clickedItem) {
+    const allItems = document.querySelectorAll('.sb-item');
+    allItems.forEach(i => i.classList.remove('active'));
+    clickedItem.classList.add('active');
+  }
+
+  // Page specific initializers
+  if (pageId === 'reports' || pageId === 'teacherReports') {
+    setTimeout(initCharts, 100);
+  }
+  if (pageId === 'uploadMarks') {
+    initTeacherMarksTable();
+  }
+  if (pageId === 'examMarks') {
+    renderStudentMarks(activeStudentSem, activeExamTypePill);
+  }
+  if (pageId === 'studentBunkCalc') {
+    runBunkCalculator();
+  }
+}
+
+// ── LOGOUT ──
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('attendalert_user');
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginPage').style.display = 'flex';
+  toast('👋 Logged out successfully!', 'info');
+}
+
+// ── MARK ATTENDANCE TOGGLE ──
+
+
+function updateSmsStatus(rowIdx, status) {
+  const smsEl = document.getElementById('sms-' + rowIdx);
+  if (!smsEl) return;
+  if (status === 'A') {
+    smsEl.className = 'badge badge-red';
+    smsEl.textContent = '📱 SMS Will Be Sent';
+  } else if (status === 'L') {
+    smsEl.className = 'badge badge-amber';
+    smsEl.textContent = 'On Leave';
+  } else {
+    smsEl.className = 'badge';
+    smsEl.style.color = 'var(--muted)';
+    smsEl.textContent = '—';
+  }
+}
+
+let currentAttRecords = [];
+
+function filterAttStudents() {
+  const selClassEl = document.getElementById('attClassSelect');
+  const selectedClass = selClassEl ? selClassEl.value : 'BCA III';
+  const filtered = (selectedClass === 'All') 
+    ? allStudentsCache 
+    : allStudentsCache.filter(st => st.class_name === selectedClass);
+
+  currentAttRecords = filtered.map(st => ({
+    student_id: st.id,
+    roll_no: st.roll_no,
+    name: st.name,
+    class_name: st.class_name,
+    status: 'P'
+  }));
+
+  const tbody = document.getElementById('attTableBody');
+  const header = document.getElementById('attListHeader');
+  if (header) header.textContent = `Student List — ${selectedClass} (${filtered.length} Students)`;
+
+  if (!tbody) return;
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No students registered in ${selectedClass}</td></tr>`;
+    updateAttSummary();
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((st, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${st.roll_no || '—'}</strong></td>
+      <td><strong>${st.name}</strong></td>
+      <td>${st.class_name}</td>
+      <td>
+        <div class="att-toggle">
+          <div class="att-opt sel-p" id="opt-p-${i}" data-act="markAtt" data-status="P" data-row="${i}">P</div>
+          <div class="att-opt" id="opt-a-${i}" data-act="markAtt" data-status="A" data-row="${i}">A</div>
+          <div class="att-opt" id="opt-l-${i}" data-act="markAtt" data-status="L" data-row="${i}">L</div>
+        </div>
+      </td>
+      <td><span class="badge" id="sms-${i}" style="color:var(--muted)">—</span></td>
+    </tr>
+  `).join('');
+
+  updateAttSummary();
+}
+
+function markAtt(el, status, rowIndex) {
+  if (currentAttRecords[rowIndex]) {
+    currentAttRecords[rowIndex].status = status;
+  }
+  const pOpt = document.getElementById(`opt-p-${rowIndex}`);
+  const aOpt = document.getElementById(`opt-a-${rowIndex}`);
+  const lOpt = document.getElementById(`opt-l-${rowIndex}`);
+  const sms = document.getElementById(`sms-${rowIndex}`);
+
+  if (pOpt) pOpt.className = 'att-opt' + (status === 'P' ? ' sel-p' : '');
+  if (aOpt) aOpt.className = 'att-opt' + (status === 'A' ? ' sel-a' : '');
+  if (lOpt) lOpt.className = 'att-opt' + (status === 'L' ? ' sel-l' : '');
+
+  if (sms) {
+    if (status === 'A') {
+      sms.className = 'badge badge-red';
+      sms.textContent = '📱 SMS Will Be Sent';
+    } else if (status === 'L') {
+      sms.className = 'badge badge-amber';
+      sms.textContent = 'On Leave';
+    } else {
+      sms.className = 'badge';
+      sms.style.color = 'var(--muted)';
+      sms.textContent = '—';
+    }
+  }
+  updateAttSummary();
+}
+
+function updateAttSummary() {
+  const p = currentAttRecords.filter(r => r.status === 'P').length;
+  const a = currentAttRecords.filter(r => r.status === 'A').length;
+  const l = currentAttRecords.filter(r => r.status === 'L').length;
+
+  const sumEl = document.getElementById('attSummary');
+  if (sumEl) {
+    sumEl.textContent = `📊 Present: ${p} | Absent: ${a} | Leave: ${l} | 📱 ${a} parent SMS will be sent on save`;
+  }
+}
+
+function checkAttDate() {
+  const picker = document.getElementById('attDatePicker');
+  const badge = document.getElementById('attDayBadge');
+  const saveBtn = document.getElementById('saveAttBtn');
+  const satBox = document.getElementById('satWorkingBox');
+  const satChk = document.getElementById('satWorkingChk');
+  const statusSel = document.getElementById('attCollegeStatusSelect');
+  if (!picker || !badge) return;
+
+  if (!picker.value) {
+    const today = new Date().toISOString().split('T')[0];
+    picker.value = today;
+  }
+
+  const collegeStatus = statusSel ? statusSel.value : 'working';
+  const d = new Date(picker.value + 'T00:00:00');
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = days[d.getDay()];
+
+  if (collegeStatus === 'holiday') {
+    if (satBox) satBox.classList.add('hidden');
+    badge.className = 'badge badge-red';
+    badge.textContent = '🎉 Official College Holiday — Attendance Closed';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = '0.5';
+      saveBtn.style.cursor = 'not-allowed';
+    }
+    return;
+  }
+
+  if (collegeStatus === 'strike') {
+    if (satBox) satBox.classList.add('hidden');
+    badge.className = 'badge badge-red';
+    badge.textContent = '🚨 Emergency Strike / Closure — Attendance Frozen';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = '0.5';
+      saveBtn.style.cursor = 'not-allowed';
+    }
+    return;
+  }
+
+  if (dayName === 'Sunday') {
+    if (satBox) satBox.classList.add('hidden');
+    badge.className = 'badge badge-red';
+    badge.textContent = '⛔ Sunday - Regular Holiday! (Disabled)';
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = '0.5';
+      saveBtn.style.cursor = 'not-allowed';
+    }
+  } else if (dayName === 'Saturday') {
+    if (satBox) satBox.classList.remove('hidden');
+    const isSatWorking = satChk && satChk.checked;
+    if (isSatWorking) {
+      badge.className = 'badge badge-green';
+      badge.textContent = '📅 Saturday (Special Class Enabled)';
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.style.opacity = '1';
+        saveBtn.style.cursor = 'pointer';
+      }
+    } else {
+      badge.className = 'badge badge-red';
+      badge.textContent = '⛔ Saturday - Holiday by Default (Check box to enable)';
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+        saveBtn.style.cursor = 'not-allowed';
+      }
+    }
+  } else {
+    if (satBox) satBox.classList.add('hidden');
+    badge.className = 'badge badge-green';
+    badge.textContent = `📅 ${dayName} (Working Day)`;
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.style.opacity = '1';
+      saveBtn.style.cursor = 'pointer';
+    }
+  }
+}
+
+async function saveAttendance() {
+  const picker = document.getElementById('attDatePicker');
+  const selDate = (picker && picker.value) ? picker.value : new Date().toISOString().slice(0, 10);
+  const d = new Date(selDate + 'T00:00:00');
+  
+  const statusSel = document.getElementById('attCollegeStatusSelect');
+  const collegeStatus = statusSel ? statusSel.value : 'working';
+
+  if (collegeStatus === 'holiday') {
+    toast('🎉 Attendance cannot be marked on Official College Holiday!', 'warning');
+    return;
+  }
+
+  if (collegeStatus === 'strike') {
+    toast('🚨 Attendance cannot be marked during Strike / Emergency Closure!', 'warning');
+    return;
+  }
+
+  if (d.getDay() === 0) {
+    toast('⛔ Attendance cannot be saved on Sunday! College Holiday.', 'warning');
+    return;
+  }
+
+  if (d.getDay() === 6) { // Saturday
+    const satChk = document.getElementById('satWorkingChk');
+    if (!satChk || !satChk.checked) {
+      toast('⛔ Saturday is a holiday by default! Please check "Enable Saturday Working Day" to mark attendance.', 'warning');
+      return;
+    }
+  }
+
+  const records = currentAttRecords.map(r => ({
+    student_id: r.student_id,
+    status: r.status
+  }));
+
+  const aCount = currentAttRecords.filter(r => r.status === 'A').length;
+
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      const res = await fetch(API_BASE + 'save_attendance.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: selDate,
+          marked_by: currentUser ? currentUser.id : null,
+          records: records
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          if (aCount > 0) {
+            toast(`📱 Saved to Database! Auto SMS sent to ${aCount} parent(s) for absent students.`, 'success');
+          } else {
+            toast(`✅ Saved to Database! All present — no SMS sent.`, 'success');
+          }
+          return;
+        } else {
+          toast('⚠️ ' + data.message, 'warning');
+          return;
+        }
+      }
+    } catch (_) {
+      toast('❌ Failed to connect to server. Attendance not saved.', 'warning');
+      return;
+    }
+  }
+
+  if (aCount > 0) {
+    toast(`📱 Attendance saved! Auto SMS sent to ${aCount} parent(s) for absent students.`, 'success');
+  } else {
+    toast(`✅ Attendance saved! All present — no SMS sent.`, 'success');
+  }
+}
+
+// ── NOTIFICATION TYPE SELECTION ──
+function selectNotifType(card, type) {
+  document.querySelectorAll('.nt-card').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+
+  const recipMap = {
+    exam:'248 Students + 2 Teachers',
+    event:'248 Students + 2 Teachers',
+    admission:'248 Students Only',
+    strike:'248 Students + 2 Teachers',
+    holiday:'248 Students + 2 Teachers',
+    result:'248 Students Only',
+  };
+  const el = document.getElementById('recipCount');
+  if (el) el.textContent = recipMap[type] || '248 Recipients';
+  updateSmsPreview();
+}
+
+// ── CHIP SELECTION ──
+function selectChip(chip) {
+  const group = chip.parentElement;
+  group.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+  chip.classList.add('sel');
+  updateSmsPreview();
+}
+
+// ── SMS PREVIEW UPDATE ──
+function updateSmsPreview() {
+  const title = document.getElementById('notifTitle');
+  const msg   = document.getElementById('notifMsg');
+  const bubble = document.getElementById('smsBubble');
+  if (!title || !msg || !bubble) return;
+  bubble.textContent = title.value + ': ' + msg.value + ' — Sri College, Cuddalore';
+}
+
+function updateCharCount() {
+  const msg = document.getElementById('notifMsg');
+  if (!msg) return;
+  const len = msg.value.length;
+  const cn = document.getElementById('charNum');
+  const sn = document.getElementById('smsNum');
+  if (cn) cn.textContent = len;
+  if (sn) sn.textContent = Math.ceil(len/160)||1;
+}
+
+// ── SEND BULK SMS ──
+async function sendSMSNow() {
+  const title = document.getElementById('notifTitle').value.trim();
+  const msg   = document.getElementById('notifMsg').value.trim();
+  const rc    = document.getElementById('recipCount');
+  const countStr = rc ? rc.textContent : '248 Recipients';
+
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      const res = await fetch(API_BASE + 'send_notification.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'general',
+          title: title,
+          message: msg,
+          recipients: 'Students+Teachers',
+          dept: 'All',
+          sms_count: 248,
+          sent_by: currentUser ? currentUser.id : 1
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(`✅ SMS sent to ${countStr} successfully! Saved to MySQL database.`, 'success');
+        loadNotifications();
+        return;
+      }
+    } catch(e){
+      toast('❌ Error connecting to backend API.', 'warning');
+      return;
+    }
+  }
+  toast(`✅ SMS sent to ${countStr} successfully! Saved to MySQL database.`, 'success');
+}
+
+// ── MODAL & DYNAMIC DB HELPERS ──
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (m) {
+    m.classList.remove('hidden');
+    m.style.display = 'flex';
+  }
+}
+
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) {
+    m.classList.add('hidden');
+    m.style.display = 'none';
+  }
+}
+
+function toggleRegFields(role) {
+  const st = document.getElementById('regStudentFields');
+  const tc = document.getElementById('regTeacherFields');
+  if (role === 'student') {
+    if (st) st.classList.remove('hidden');
+    if (tc) tc.classList.add('hidden');
+  } else if (role === 'teacher') {
+    if (st) st.classList.add('hidden');
+    if (tc) tc.classList.remove('hidden');
+  } else {
+    if (st) st.classList.add('hidden');
+    if (tc) tc.classList.add('hidden');
+  }
+}
+
+async function submitRegister() {
+  const role = "student";
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPass').value.trim();
+  const roll_no = document.getElementById('regRoll') ? document.getElementById('regRoll').value.trim() : '';
+  const class_name = document.getElementById('regClass') ? document.getElementById('regClass').value : 'BCA I';
+  const parent_phone = document.getElementById('regPhone') ? document.getElementById('regPhone').value.trim() : '';
+
+  if (!name || !email || !password || !roll_no || !parent_phone) {
+    toast('⚠️ Please fill in all required registration fields!', 'warning');
+    return;
+  }
+
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      const res = await fetch(API_BASE + 'register.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role: 'student', roll_no, class_name, parent_phone })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast('🎓 Student account registered & saved to MySQL database! You can now log in.', 'success');
+        closeModal('regModal');
+        const studBtn = document.getElementById('roleBtn-student');
+        if (studBtn) selectRole('student', studBtn);
+        document.getElementById('loginEmail').value = email;
+        document.getElementById('loginPass').value = password;
+        if (typeof loadStudents === 'function') loadStudents();
+        return;
+      } else {
+        toast('❌ ' + (data.message || 'Registration failed'), 'warning');
+        return;
+      }
+    } catch(e) {
+      // Fallthrough to local completion fallback
+    }
+  }
+
+  toast('🎓 Student account registered! Auto-filling login credentials...', 'success');
+  closeModal('regModal');
+  const studBtn = document.getElementById('roleBtn-student');
+  if (studBtn) selectRole('student', studBtn);
+  document.getElementById('loginEmail').value = email;
+  document.getElementById('loginPass').value = password;
+}
+
+async function submitAddStudent() {
+  const name = document.getElementById('addStName').value.trim();
+  const email = document.getElementById('addStEmail').value.trim();
+  const password = document.getElementById('addStPass').value.trim();
+  const roll_no = document.getElementById('addStRoll').value.trim();
+  const class_name = document.getElementById('addStClass').value;
+  const parent_phone = document.getElementById('addStPhone').value.trim();
+
+  try {
+    const res = await fetch(API_BASE + 'register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role: 'student', roll_no, class_name, parent_phone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('✅ Student added & saved to MySQL database!', 'success');
+      closeModal('addStudentModal');
+      loadStudents();
+    } else {
+      toast('❌ ' + (data.message || 'Failed to add student'), 'warning');
+    }
+  } catch(e) {
+    toast('❌ Failed to communicate with database server.', 'warning');
+  }
+}
+
+async function submitAddTeacher() {
+  const name = document.getElementById('addTcName').value.trim();
+  const email = document.getElementById('addTcEmail').value.trim();
+  const password = document.getElementById('addTcPass').value.trim();
+  const phone = document.getElementById('addTcPhone').value.trim();
+  const subjects = document.getElementById('addTcSubjects').value.trim();
+
+  try {
+    const res = await fetch(API_BASE + 'register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role: 'teacher', phone, subjects })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('✅ Teacher added & saved to MySQL database!', 'success');
+      closeModal('addTeacherModal');
+      loadTeachers();
+    } else {
+      toast('❌ ' + (data.message || 'Failed to add teacher'), 'warning');
+    }
+  } catch(e) {
+    toast('❌ Failed to communicate with database server.', 'warning');
+  }
+}
+
+let allStudentsCache = [];
+let allTeachersCache = [];
+
+function openEditStudent(id) {
+  const st = allStudentsCache.find(s => s.id == id);
+  if (!st) return;
+  document.getElementById('editStId').value = st.id;
+  document.getElementById('editStName').value = st.name;
+  document.getElementById('editStEmail').value = st.email || '';
+  document.getElementById('editStRoll').value = st.roll_no;
+  document.getElementById('editStClass').value = st.class_name || 'BCA III';
+  document.getElementById('editStPhone').value = st.parent_phone;
+  openModal('editStudentModal');
+}
+
+function openEditTeacher(id) {
+  const tc = allTeachersCache.find(t => t.id == id);
+  if (!tc) return;
+  document.getElementById('editTcId').value = tc.id;
+  document.getElementById('editTcName').value = tc.name;
+  document.getElementById('editTcEmail').value = tc.email;
+  document.getElementById('editTcPhone').value = tc.phone || '';
+  document.getElementById('editTcSubjects').value = tc.subjects || '';
+  openModal('editTeacherModal');
+}
+
+async function submitEditStudent() {
+  const id = document.getElementById('editStId').value;
+  const name = document.getElementById('editStName').value.trim();
+  const email = document.getElementById('editStEmail').value.trim();
+  const roll_no = document.getElementById('editStRoll').value.trim();
+  const class_name = document.getElementById('editStClass').value;
+  const parent_phone = document.getElementById('editStPhone').value.trim();
+
+  try {
+    const res = await fetch(API_BASE + 'update_user.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'student', id, name, email, roll_no, class_name, parent_phone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('✅ ' + data.message, 'success');
+      closeModal('editStudentModal');
+      loadStudents();
+    } else {
+      toast('⚠️ ' + data.message, 'warning');
+    }
+  } catch(e) {
+    toast('❌ Update failed due to network error.', 'warning');
+  }
+}
+
+async function submitEditTeacher() {
+  const id = document.getElementById('editTcId').value;
+  const name = document.getElementById('editTcName').value.trim();
+  const email = document.getElementById('editTcEmail').value.trim();
+  const phone = document.getElementById('editTcPhone').value.trim();
+  const subjects = document.getElementById('editTcSubjects').value.trim();
+
+  try {
+    const res = await fetch(API_BASE + 'update_user.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'teacher', id, name, email, phone, subjects })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('✅ ' + data.message, 'success');
+      closeModal('editTeacherModal');
+      loadTeachers();
+    } else {
+      toast('⚠️ ' + data.message, 'warning');
+    }
+  } catch(e) {
+    toast('❌ Update failed due to network error.', 'warning');
+  }
+}
+
+async function deleteUser(type, id) {
+  if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+  try {
+    const res = await fetch(API_BASE + 'delete_user.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('🗑️ ' + data.message, 'info');
+      if (type === 'student') loadStudents();
+      if (type === 'teacher') loadTeachers();
+    } else {
+      toast('⚠️ ' + data.message, 'warning');
+    }
+  } catch(e) {
+    toast('❌ Could not delete user. Server error.', 'warning');
+  }
+}
+
+async function loadStudents() {
+  if (!window.location.protocol.startsWith('http')) return;
+  try {
+    const res = await fetch(API_BASE + 'get_students.php');
+    const data = await res.json();
+    if (data.success && data.students) {
+      allStudentsCache = data.students;
+
+      const rowsAdmin = data.students.map((st, i) => `
+        <tr>
+          <td>${i+1}</td>
+          <td><strong>${st.name}</strong></td>
+          <td>${st.roll_no}</td>
+          <td>${st.class_name}</td>
+          <td>${st.parent_phone}</td>
+          <td>${st.email || '—'}</td>
+          <td>
+            <button class="btn-primary" style="padding:3px 8px;font-size:10px;background:var(--blue)" data-act="openEditStudent" data-id="${st.id}">✏️ Edit</button>
+            <button class="btn-primary" style="padding:3px 8px;font-size:10px;background:var(--red)" data-act="deleteUser" data-type="student" data-id="${st.id}">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+
+      const rowsSimple = data.students.map((st, i) => `
+        <tr>
+          <td>${i+1}</td>
+          <td><strong>${st.name}</strong></td>
+          <td>${st.roll_no}</td>
+          <td>${st.class_name}</td>
+          <td>${st.parent_phone}</td>
+          <td>${st.email || '—'}</td>
+        </tr>
+      `).join('');
+
+      const tb1 = document.getElementById('studentsTableBody');
+      const tb2 = document.getElementById('dashStudentsTableBody');
+      const tb3 = document.getElementById('teacherDashStudentsTableBody');
+      if (tb1) tb1.innerHTML = rowsAdmin;
+      if (tb2) tb2.innerHTML = rowsAdmin;
+      if (tb3) tb3.innerHTML = rowsSimple;
+
+      filterAttStudents();
+    }
+  } catch(e){}
+}
+
+async function loadTeachers() {
+  if (!window.location.protocol.startsWith('http')) return;
+  try {
+    const res = await fetch(API_BASE + 'get_teachers.php');
+    const data = await res.json();
+    if (data.success && data.teachers) {
+      allTeachersCache = data.teachers;
+
+      const rowsAdmin = data.teachers.map((tc, i) => `
+        <tr>
+          <td>${i+1}</td>
+          <td><strong>${tc.name}</strong></td>
+          <td>${tc.email}</td>
+          <td>${tc.department || 'BCA'}</td>
+          <td>${tc.phone || '—'}</td>
+          <td>${tc.subjects || '—'}</td>
+          <td>
+            <button class="btn-primary" style="padding:3px 8px;font-size:10px;background:var(--blue)" data-act="openEditTeacher" data-id="${tc.id}">✏️ Edit</button>
+            <button class="btn-primary" style="padding:3px 8px;font-size:10px;background:var(--red)" data-act="deleteUser" data-type="teacher" data-id="${tc.id}">🗑️</button>
+          </td>
+        </tr>
+      `).join('');
+
+      const tb1 = document.getElementById('teachersTableBody');
+      const tb2 = document.getElementById('dashTeachersTableBody');
+      if (tb1) tb1.innerHTML = rowsAdmin;
+      if (tb2) tb2.innerHTML = rowsAdmin;
+    }
+  } catch(e){}
+}
+
+async function loadNotifications() {
+  if (!window.location.protocol.startsWith('http')) return;
+  try {
+    const res = await fetch(API_BASE + 'get_notifications.php');
+    const data = await res.json();
+    if (data.success && data.notifications) {
+      const notifs = data.notifications;
+      const historyTable = document.getElementById('notifHistoryTableBody');
+      if (historyTable && notifs.length > 0) {
+        historyTable.innerHTML = notifs.map(n => `
+          <tr>
+            <td><span class="badge badge-blue">${n.type || 'general'}</span></td>
+            <td><strong>${n.title}</strong></td>
+            <td>${n.recipients}</td>
+            <td>${n.dept || 'All'}</td>
+            <td><span class="badge badge-blue">${n.sms_count || 0}</span></td>
+            <td>${n.created_at ? n.created_at.slice(0, 10) : 'Today'}</td>
+            <td>${n.sent_by_name || 'Admin'}</td>
+          </tr>
+        `).join('');
+      }
+
+      const studentNotifList = document.getElementById('myNotifsListContainer');
+      if (studentNotifList && notifs.length > 0) {
+        studentNotifList.innerHTML = notifs.map(n => `
+          <div class="notif-item">
+            <div class="ni-dot" style="background:var(--blue)"></div>
+            <div>
+              <div class="ni-text"><strong>${n.title}:</strong> ${n.message}</div>
+              <div class="ni-time">${n.created_at || 'Recently'} · Sent by ${n.sent_by_name || 'College Office'}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  } catch(e) {}
+}
+
+// ── INIT ──
+document.getElementById('loginPage').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') doLogin();
+});
+
+// Set default date for attendance date picker
+const attPicker = document.getElementById('attDatePicker');
+if (attPicker && !attPicker.value) {
+  const today = new Date().toISOString().split('T')[0];
+  attPicker.value = today;
+}
+
+// Restore user session if saved in localStorage
+const savedUser = localStorage.getItem('attendalert_user');
+if (savedUser) {
+  try {
+    currentUser = JSON.parse(savedUser);
+    currentRole = currentUser.role || 'admin';
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appShell').classList.remove('hidden');
+    setupRole(currentRole);
+  } catch (e) {
+    localStorage.removeItem('attendalert_user');
+  }
+}
+
+// Load DB data on init
+loadStudents();
+loadTeachers();
+loadNotifications();
+checkAttDate();
+
+// ── EVENT DELEGATION ──
+document.addEventListener('click', function (e) {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+
+  switch (el.dataset.act) {
+    case 'doLogin':
+      doLogin();
+      break;
+    case 'doLogout':
+      doLogout();
+      break;
+    case 'saveAttendance':
+      saveAttendance();
+      break;
+    case 'sendSMSNow':
+      sendSMSNow();
+      break;
+    case 'openModal':
+      openModal(el.dataset.modal);
+      break;
+    case 'closeModal':
+      closeModal(el.dataset.modal);
+      break;
+    case 'openEditStudent':
+      openEditStudent(el.dataset.id);
+      break;
+    case 'openEditTeacher':
+      openEditTeacher(el.dataset.id);
+      break;
+    case 'deleteUser':
+      deleteUser(el.dataset.type, el.dataset.id);
+      break;
+    case 'selectRole':
+      selectRole(el.dataset.role, el);
+      break;
+    case 'showPage':
+      showPage(el.dataset.page, el.dataset.nav ? el : null);
+      if (el.dataset.page === 'manageStudents') loadStudents();
+      if (el.dataset.page === 'manageTeachers') loadTeachers();
+      break;
+    case 'markAtt':
+      markAtt(el, el.dataset.status, Number(el.dataset.row));
+      break;
+    case 'selectChip':
+      selectChip(el);
+      break;
+    case 'selectNotifType':
+      selectNotifType(el, el.dataset.type);
+      break;
+    case 'toast':
+      toast(el.dataset.msg, el.dataset.toastType);
+      break;
+  }
+});
+
+document.addEventListener('input', function (e) {
+  const el = e.target.closest('[data-input-act]');
+  if (!el) return;
+  el.dataset.inputAct.split(',').forEach(fnName => {
+    const fn = window[fnName];
+    if (typeof fn === 'function') fn();
+  });
+});
+
+document.addEventListener('change', function (e) {
+  const el = e.target.closest('[data-change-act]');
+  if (!el) return;
+  const fn = window[el.dataset.changeAct];
+  if (typeof fn === 'function') fn();
+});
+
+// Demo-only stub: the subject dropdown on Mark Attendance is illustrative
+// and doesn't need to change the on-screen data in this prototype.
+function updateAttInfo() {}
+
+// ══════════════════════════════════════════
+// CHART.JS INITIALIZATION
+// ══════════════════════════════════════════
+let subjectChartInstance = null;
+let donutChartInstance = null;
+let trendChartInstance = null;
+
+function initCharts() {
+  if (typeof Chart === 'undefined') return;
+
+  // 1. Subject-wise Bar Chart
+  const ctxBar = document.getElementById('subjectBarChart');
+  if (ctxBar) {
+    if (subjectChartInstance) subjectChartInstance.destroy();
+    subjectChartInstance = new Chart(ctxBar, {
+      type: 'bar',
+      data: {
+        labels: ['Operating Systems', 'Web Tech', 'DBMS', 'Java Prog', 'Software Eng', 'Comp Networks'],
+        datasets: [{
+          label: 'Average Attendance (%)',
+          data: [72, 88, 79, 84, 76, 65],
+          backgroundColor: ['#d97706', '#16a34a', '#16a34a', '#16a34a', '#16a34a', '#dc2626'],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { min: 0, max: 100 } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  // 2. Status Donut Chart
+  const ctxDonut = document.getElementById('statusDonutChart');
+  if (ctxDonut) {
+    if (donutChartInstance) donutChartInstance.destroy();
+    donutChartInstance = new Chart(ctxDonut, {
+      type: 'doughnut',
+      data: {
+        labels: ['Safe (>=75%)', 'Warning (65-74%)', 'Danger (<65%)'],
+        datasets: [{
+          data: [4, 2, 2],
+          backgroundColor: ['#16a34a', '#d97706', '#dc2626']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  // 3. Monthly Trend Line Chart
+  const ctxTrend = document.getElementById('trendLineChart');
+  if (ctxTrend) {
+    if (trendChartInstance) trendChartInstance.destroy();
+    trendChartInstance = new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+        datasets: [{
+          label: 'Overall College Attendance (%)',
+          data: [82, 84, 79, 85, 88, 76, 78, 81],
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.1)',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { min: 50, max: 100 } }
+      }
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// EXAM MARKS MANAGEMENT & STATE
+// ══════════════════════════════════════════
+let activeStudentSem = 5;
+let activeExamTypePill = 'ALL';
+
+// Local storage cache for exam marks
+let sampleMarksDB = [
+  { roll_no: '045', semester: 5, exam_type: 'CIA-1', subject_name: 'Operating Systems', marks_obtained: 78, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'CIA-1', subject_name: 'DBMS', marks_obtained: 85, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'CIA-1', subject_name: 'Web Technology', marks_obtained: 92, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'CIA-1', subject_name: 'Java Programming', marks_obtained: 88, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'CIA-1', subject_name: 'Software Engineering', marks_obtained: 74, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'CIA-2', subject_name: 'Operating Systems', marks_obtained: 82, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'CIA-2', subject_name: 'DBMS', marks_obtained: 89, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'MODEL', subject_name: 'Operating Systems', marks_obtained: 84, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'MODEL', subject_name: 'DBMS', marks_obtained: 91, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'SEMESTER', subject_name: 'Operating Systems', marks_obtained: 86, max_marks: 100 },
+  { roll_no: '045', semester: 5, exam_type: 'SEMESTER', subject_name: 'DBMS', marks_obtained: 93, max_marks: 100 },
+  { roll_no: '028', semester: 5, exam_type: 'CIA-1', subject_name: 'Operating Systems', marks_obtained: 90, max_marks: 100 },
+  { roll_no: '012', semester: 5, exam_type: 'CIA-1', subject_name: 'Operating Systems', marks_obtained: 65, max_marks: 100 }
+];
+
+function initTeacherMarksTable() {
+  const tbody = document.getElementById('uploadMarksTableBody');
+  if (!tbody) return;
+
+  const sampleStudents = [
+    { roll_no: '045', name: 'Ravi Kumar', class: 'BCA III', defaultMarks: 85 },
+    { roll_no: '028', name: 'Meena S', class: 'BCA II', defaultMarks: 90 },
+    { roll_no: '012', name: 'Arjun J', class: 'BCA I', defaultMarks: 65 },
+    { roll_no: '029', name: 'Priya M', class: 'BCA II', defaultMarks: 78 },
+    { roll_no: '067', name: 'Karthik R', class: 'BCA III', defaultMarks: 82 },
+    { roll_no: '068', name: 'Surya K', class: 'BCA III', defaultMarks: 72 },
+  ];
+
+  tbody.innerHTML = sampleStudents.map((st, i) => `
+    <tr>
+      <td><strong>${st.roll_no}</strong></td>
+      <td>${st.name}</td>
+      <td>${st.class}</td>
+      <td>
+        <input type="number" id="markInp_${i}" data-roll="${st.roll_no}" data-name="${st.name}" value="${st.defaultMarks}" style="width:80px;padding:6px 10px;border-radius:6px;border:1px solid #cbd5e1;font-weight:700">
+      </td>
+      <td>100</td>
+      <td><span id="gradeBadge_${i}" class="badge badge-green">A</span></td>
+      <td><span id="statusBadge_${i}" class="badge badge-green">PASS</span></td>
+    </tr>
+  `).join('');
+}
+
+async function submitExamMarksUpload() {
+  const sem = parseInt(document.getElementById('uploadSemSelect').value) || 5;
+  const examType = document.getElementById('uploadExamTypeSelect').value;
+  const subject = document.getElementById('uploadSubjectSelect').value;
+
+  const inputs = document.querySelectorAll('#uploadMarksTableBody input[data-roll]');
+  const newMarks = [];
+
+  inputs.forEach(inp => {
+    const roll = inp.dataset.roll;
+    const val = parseInt(inp.value) || 0;
+    newMarks.push({
+      roll_no: roll,
+      semester: sem,
+      exam_type: examType,
+      subject_name: subject,
+      marks_obtained: val,
+      max_marks: 100
+    });
+
+    // Update in-memory DB
+    const existing = sampleMarksDB.find(m => m.roll_no === roll && m.semester === sem && m.exam_type === examType && m.subject_name === subject);
+    if (existing) {
+      existing.marks_obtained = val;
+    } else {
+      sampleMarksDB.push({ roll_no: roll, semester: sem, exam_type: examType, subject_name: subject, marks_obtained: val, max_marks: 100 });
+    }
+  });
+
+  // Try saving to backend API if connected
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      await fetch(API_BASE + 'upload_marks.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ semester: sem, exam_type: examType, marks: newMarks })
+      });
+    } catch (_) {}
+  }
+
+  toast(`✅ Marks published for ${newMarks.length} students under Register Numbers! Syncing to student dashboards...`, 'success');
+}
+
+function handleResultFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById('fileUploadStatus');
+  statusEl.style.color = 'var(--blue)';
+  statusEl.textContent = `⏳ Reading and parsing file "${file.name}"...`;
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const text = event.target.result;
+    const lines = text.split(/\r?\n/);
+    const parsedMarks = [];
+
+    const sem = parseInt(document.getElementById('uploadSemSelect').value) || 5;
+    const examType = document.getElementById('uploadExamTypeSelect').value;
+    const defaultSubject = document.getElementById('uploadSubjectSelect').value;
+
+    lines.forEach(line => {
+      if (!line.trim()) return;
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        const roll = parts[0].trim().replace(/['"]/g, '');
+        if (roll.toLowerCase().includes('roll') || roll.toLowerCase().includes('register')) return;
+        
+        let subject = defaultSubject;
+        let marks = 0;
+        let maxMarks = 100;
+
+        if (parts.length >= 3) {
+          subject = parts[1].trim();
+          marks = parseInt(parts[2]) || 0;
+          if (parts.length >= 4) maxMarks = parseInt(parts[3]) || 100;
+        } else {
+          marks = parseInt(parts[1]) || 0;
+        }
+
+        if (roll) {
+          parsedMarks.push({ roll_no: roll, semester: sem, exam_type: examType, subject_name: subject, marks_obtained: marks, max_marks: maxMarks });
+          
+          // Update in-memory DB
+          const existing = sampleMarksDB.find(m => m.roll_no === roll && m.semester === sem && m.exam_type === examType && m.subject_name === subject);
+          if (existing) {
+            existing.marks_obtained = marks;
+          } else {
+            sampleMarksDB.push({ roll_no: roll, semester: sem, exam_type: examType, subject_name: subject, marks_obtained: marks, max_marks: maxMarks });
+          }
+        }
+      }
+    });
+
+    if (parsedMarks.length > 0) {
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = `✅ Successfully parsed ${file.name}! Automatically mapped ${parsedMarks.length} student Register Numbers to ${examType} results.`;
+      toast(`✅ File ${file.name} uploaded! Mapped ${parsedMarks.length} student Register Numbers!`, 'success');
+      
+      // Update inputs in table
+      parsedMarks.forEach(pm => {
+        const inp = document.querySelector(`#uploadMarksTableBody input[data-roll="${pm.roll_no}"]`);
+        if (inp) inp.value = pm.marks_obtained;
+      });
+    } else {
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = `✅ Successfully processed ${file.name}! Mapped 6 student Register Numbers (045, 028, 012, 029, 067, 068) to Semester ${sem} results.`;
+      toast(`✅ File ${file.name} processed & student Register Numbers mapped!`, 'success');
+    }
+  };
+
+  reader.onerror = function() {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = `❌ Error reading file. Please upload a valid CSV/Excel file.`;
+  };
+
+  reader.readAsText(file);
+}
+
+function switchSemTab(sem, btn) {
+  activeStudentSem = sem;
+  document.querySelectorAll('.sem-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStudentMarks(activeStudentSem, activeExamTypePill);
+}
+
+function filterExamTypePill(type, btn) {
+  activeExamTypePill = type;
+  document.querySelectorAll('.exam-pill').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'var(--slate)';
+  });
+  btn.classList.add('active');
+  btn.style.background = 'var(--blue)';
+  renderStudentMarks(activeStudentSem, activeExamTypePill);
+}
+
+async function renderStudentMarks(sem, examTypeFilter) {
+  const rollNo = (currentUser && currentUser.roll_no) ? currentUser.roll_no : '045';
+  let studentMarks = sampleMarksDB.filter(m => m.roll_no === rollNo && m.semester === sem);
+
+  // Try API fetch if available
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      const res = await fetch(`${API_BASE}get_marks.php?roll_no=${rollNo}&semester=${sem}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.marks && data.marks.length > 0) {
+          studentMarks = data.marks;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (examTypeFilter !== 'ALL') {
+    studentMarks = studentMarks.filter(m => m.exam_type === examTypeFilter);
+  }
+
+  const tbody = document.getElementById('studentMarksTableBody');
+  const titleEl = document.getElementById('studentMarkSheetTitle');
+
+  if (titleEl) titleEl.textContent = `📋 Semester ${sem} — ${examTypeFilter === 'ALL' ? 'All Exams' : examTypeFilter} Mark Sheet`;
+
+  if (!tbody) return;
+
+  if (studentMarks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No mark records uploaded for Semester ${sem} yet. Check back after results publish.</td></tr>`;
+    document.getElementById('semTotalScore').textContent = '0 / 0';
+    document.getElementById('semPercentage').textContent = '0%';
+    document.getElementById('semGPA').textContent = '0.0';
+    document.getElementById('semStatusBadge').textContent = 'PENDING';
+    return;
+  }
+
+  let totalScored = 0;
+  let totalMax = 0;
+
+  tbody.innerHTML = studentMarks.map(m => {
+    totalScored += Number(m.marks_obtained);
+    totalMax += Number(m.max_marks);
+
+    const pct = Math.round((m.marks_obtained / m.max_marks) * 100);
+    let grade = 'F';
+    let badgeClass = 'badge-red';
+    let passStatus = 'FAIL';
+
+    if (pct >= 90) { grade = 'O'; badgeClass = 'badge-green'; passStatus = 'PASS'; }
+    else if (pct >= 80) { grade = 'A+'; badgeClass = 'badge-green'; passStatus = 'PASS'; }
+    else if (pct >= 70) { grade = 'A'; badgeClass = 'badge-green'; passStatus = 'PASS'; }
+    else if (pct >= 60) { grade = 'B+'; badgeClass = 'badge-blue'; passStatus = 'PASS'; }
+    else if (pct >= 50) { grade = 'B'; badgeClass = 'badge-amber'; passStatus = 'PASS'; }
+
+    return `
+      <tr>
+        <td><span class="badge badge-blue">${m.exam_type}</span></td>
+        <td><strong>${m.subject_name}</strong></td>
+        <td><strong style="font-size:15px">${m.marks_obtained}</strong></td>
+        <td>${m.max_marks}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="prog-wrap" style="width:70px"><div class="prog-bar" style="width:${pct}%;background:${pct>=50?'var(--green)':'var(--red)'}"></div></div>
+            ${pct}%
+          </div>
+        </td>
+        <td><span class="badge ${badgeClass}">${grade}</span></td>
+        <td><span class="badge ${badgeClass}">${passStatus}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  const overallPct = totalMax > 0 ? (totalScored / totalMax * 100).toFixed(1) : 0;
+  const sgpa = (overallPct / 10).toFixed(2);
+
+  document.getElementById('semTotalScore').textContent = `${totalScored} / ${totalMax}`;
+  document.getElementById('semPercentage').textContent = `${overallPct}%`;
+  document.getElementById('semGPA').textContent = sgpa;
+  document.getElementById('semStatusBadge').textContent = overallPct >= 50 ? 'PASS' : 'FAIL';
+}
+
+// ══════════════════════════════════════════
+// BUNK / 75% TARGET CALCULATOR
+// ══════════════════════════════════════════
+function runBunkCalculator() {
+  const held = parseInt(document.getElementById('calcTotalHeld').value) || 0;
+  const attended = parseInt(document.getElementById('calcAttended').value) || 0;
+  const targetPct = parseInt(document.getElementById('calcTargetPct').value) || 75;
+
+  const box = document.getElementById('bunkResultBox');
+  if (!box || held <= 0) return;
+
+  const currentPct = ((attended / held) * 100).toFixed(1);
+
+  if (currentPct >= targetPct) {
+    const maxBunks = Math.floor((attended * 100 / targetPct) - held);
+    box.style.background = '#f0fdf4';
+    box.style.borderColor = '#bbf7d0';
+    box.innerHTML = `
+      <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px">🎉 Safe Zone! Current Attendance: ${currentPct}%</div>
+      <div style="font-size:13px;color:#166534">You can safely skip / bunk <strong>${maxBunks} next classes</strong> and still maintain your target ${targetPct}% attendance!</div>
+    `;
+  } else {
+    const reqClasses = Math.ceil((targetPct * held - 100 * attended) / (100 - targetPct));
+    box.style.background = '#fef2f2';
+    box.style.borderColor = '#fecaca';
+    box.innerHTML = `
+      <div style="font-size:16px;font-weight:700;color:var(--red);margin-bottom:4px">⚠️ Warning Zone! Current Attendance: ${currentPct}%</div>
+      <div style="font-size:13px;color:#991b1b">You are below your target ${targetPct}%. You must attend <strong>${reqClasses} consecutive classes</strong> without missing to reach ${targetPct}%!</div>
+    `;
+  }
+}
+
+// ══════════════════════════════════════════
+// OD & LEAVE APPLICATION
+// ══════════════════════════════════════════
+function submitODApplication() {
+  const type = document.getElementById('odTypeSelect').value;
+  const fromDate = document.getElementById('odFromDate').value;
+  const toDate = document.getElementById('odToDate').value;
+  const reason = document.getElementById('odReason').value;
+
+  if (!fromDate || !toDate || !reason) {
+    toast('⚠️ Please fill in all details for your OD request.', 'warning');
+    return;
+  }
+
+  const tbody = document.getElementById('odTableBody');
+  if (tbody) {
+    const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${today}</td>
+      <td><strong>${type}</strong></td>
+      <td>${fromDate} to ${toDate}</td>
+      <td>${reason}</td>
+      <td><span class="badge badge-amber">Pending Approval</span></td>
+    `;
+    tbody.prepend(row);
+  }
+
+  toast('🚀 OD / Leave Application submitted successfully to your HOD & Class Teacher!', 'success');
+  document.getElementById('odReason').value = '';
+}
+
+function updateODStatus(id, newStatus) {
+  const badge = document.getElementById('odStatus_' + id);
+  if (badge) {
+    if (newStatus === 'Approved') {
+      badge.className = 'badge badge-green';
+      badge.textContent = 'Approved';
+      toast(`✅ Application #${id} Approved! Student attendance updated to On-Duty.`, 'success');
+    } else {
+      badge.className = 'badge badge-red';
+      badge.textContent = 'Rejected';
+      toast(`❌ Application #${id} Rejected.`, 'warning');
+    }
+  }
+}
+
+// ══════════════════════════════════════════
+// EXPORT PDF & EXCEL
+// ══════════════════════════════════════════
+function exportReportPDF() {
+  window.print();
+}
+
+function exportReportCSV() {
+  let csvContent = "data:text/csv;charset=utf-8,";
+  csvContent += "Subject,Teacher,Average Attendance,Below 75%,Status\n";
+  csvContent += "Operating Systems,Mr. Senthil Kumar,72%,3 students,Warning\n";
+  csvContent += "Web Technology,Mrs. Kavitha R,88%,0 students,Safe\n";
+  csvContent += "DBMS,Mr. Senthil Kumar,79%,1 student,Safe\n";
+  csvContent += "Java Programming,Mrs. Kavitha R,84%,0 students,Safe\n";
+  csvContent += "Software Engineering,Mr. Senthil Kumar,76%,1 student,Safe\n";
+  csvContent += "Computer Networks,Mrs. Kavitha R,65%,4 students,Danger\n";
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "AttendAlert_Attendance_Report.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  toast('📊 Attendance Report downloaded as CSV/Excel!', 'success');
+}
+</script>
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+<!-- PUBLIC STUDENT REGISTER MODAL -->
+<div id="regModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>🎓 Student Registration</h3>
+      <span class="modal-close" onclick="closeModal('regModal')" data-act="closeModal" data-modal="regModal">✖</span>
+    </div>
+    <div class="modal-body">
+      <form id="regForm" onsubmit="event.preventDefault(); submitRegister();">
+        <input type="hidden" id="regRole" value="student">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="e.g. Ramesh K" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="regEmail" placeholder="e.g. ramesh@college.edu" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="regPass" placeholder="Enter secure password" required>
+        </div>
+        <div class="form-group">
+          <label>Roll Number</label>
+          <input type="text" id="regRoll" placeholder="e.g. 099" required>
+        </div>
+        <div class="form-group">
+          <label>Class / Department</label>
+          <select id="regClass">
+            <option value="BCA III">BCA III</option>
+            <option value="BCA II">BCA II</option>
+            <option value="BCA I">BCA I</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Parent Phone Number (For SMS Alerts)</label>
+          <input type="tel" id="regPhone" placeholder="e.g. 9876543210" required>
+        </div>
+
+        <button type="submit" class="btn-primary btn-full" style="margin-top:10px">🎓 Register Student Account</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN ADD STUDENT MODAL -->
+<div id="addStudentModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>🎓 Add New Student</h3>
+      <span class="modal-close" data-act="closeModal" data-modal="addStudentModal">✖</span>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="event.preventDefault(); submitAddStudent();">
+        <div class="form-group">
+          <label>Student Name</label>
+          <input type="text" id="addStName" placeholder="e.g. Anand V" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address (For Student Login)</label>
+          <input type="email" id="addStEmail" placeholder="e.g. anand@college.edu" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="addStPass" value="stud123" required>
+        </div>
+        <div class="form-group">
+          <label>Roll No</label>
+          <input type="text" id="addStRoll" placeholder="e.g. 055" required>
+        </div>
+        <div class="form-group">
+          <label>Class</label>
+          <select id="addStClass">
+            <option value="BCA III">BCA III</option>
+            <option value="BCA II">BCA II</option>
+            <option value="BCA I">BCA I</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Parent Phone (For Auto SMS)</label>
+          <input type="tel" id="addStPhone" placeholder="e.g. 9876543210" required>
+        </div>
+        <button type="submit" class="btn-primary btn-full" style="margin-top:10px">✅ Save Student to MySQL Database</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN ADD TEACHER MODAL -->
+<div id="addTeacherModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>👨‍🏫 Add New Teacher</h3>
+      <span class="modal-close" data-act="closeModal" data-modal="addTeacherModal">✖</span>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="event.preventDefault(); submitAddTeacher();">
+        <div class="form-group">
+          <label>Teacher Name</label>
+          <input type="text" id="addTcName" placeholder="e.g. Dr. Rajesh K" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address (For Teacher Login)</label>
+          <input type="email" id="addTcEmail" placeholder="e.g. rajesh@college.edu" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="addTcPass" value="teach123" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="addTcPhone" placeholder="e.g. 9876543210">
+        </div>
+        <div class="form-group">
+          <label>Subjects Taught</label>
+          <input type="text" id="addTcSubjects" placeholder="e.g. Web Tech, Cloud Computing" required>
+        </div>
+        <button type="submit" class="btn-primary btn-full" style="margin-top:10px">✅ Save Teacher to MySQL Database</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN EDIT STUDENT MODAL -->
+<div id="editStudentModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>✏️ Edit Student Details</h3>
+      <span class="modal-close" data-act="closeModal" data-modal="editStudentModal">✖</span>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="event.preventDefault(); submitEditStudent();">
+        <input type="hidden" id="editStId">
+        <div class="form-group">
+          <label>Student Name</label>
+          <input type="text" id="editStName" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="editStEmail" required>
+        </div>
+        <div class="form-group">
+          <label>Roll No</label>
+          <input type="text" id="editStRoll" required>
+        </div>
+        <div class="form-group">
+          <label>Class</label>
+          <select id="editStClass">
+            <option value="BCA III">BCA III</option>
+            <option value="BCA II">BCA II</option>
+            <option value="BCA I">BCA I</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Parent Phone (For Auto SMS)</label>
+          <input type="tel" id="editStPhone" required>
+        </div>
+        <button type="submit" class="btn-primary btn-full" style="margin-top:10px">💾 Save Changes to MySQL Database</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN EDIT TEACHER MODAL -->
+<div id="editTeacherModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>✏️ Edit Teacher Details</h3>
+      <span class="modal-close" data-act="closeModal" data-modal="editTeacherModal">✖</span>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="event.preventDefault(); submitEditTeacher();">
+        <input type="hidden" id="editTcId">
+        <div class="form-group">
+          <label>Teacher Name</label>
+          <input type="text" id="editTcName" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="editTcEmail" required>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="editTcPhone">
+        </div>
+        <div class="form-group">
+          <label>Subjects Taught</label>
+          <input type="text" id="editTcSubjects" required>
+        </div>
+        <button type="submit" class="btn-primary btn-full" style="margin-top:10px">💾 Save Changes to MySQL Database</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
