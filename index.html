@@ -2214,35 +2214,27 @@ async function submitRegister() {
       });
       const data = await res.json();
       if (data.success) {
-        toast('🎓 Student account registered & saved to MySQL database! You can now log in.', 'success');
+        toast('🎓 Student account registered successfully! Enter Email & Password to login.', 'success');
         closeModal('regModal');
-        currentRole = 'student';
-        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-        const studBtn = document.getElementById('roleBtn-student');
-        if (studBtn) studBtn.classList.add('active');
-        document.getElementById('loginTitle').textContent = 'Welcome, Student 👋';
-        document.getElementById('loginSub').textContent   = 'Login to view your attendance & notifications';
+        document.getElementById('regName').value = '';
+        document.getElementById('regEmail').value = '';
+        document.getElementById('regPass').value = '';
+        document.getElementById('regRoll').value = '';
+        document.getElementById('regPhone').value = '';
         document.getElementById('loginEmail').value = email;
         document.getElementById('loginPass').value = password;
-        if (typeof loadStudents === 'function') loadStudents();
+        const studBtn = document.getElementById('roleBtn-student');
+        if (studBtn) selectRole('student', studBtn);
         return;
       } else {
         toast('❌ ' + (data.message || 'Registration failed'), 'warning');
         return;
       }
-    } catch(e) {
-      // Fallthrough to local completion fallback
-    }
+    } catch(e) {}
   }
 
-  toast('🎓 Student account registered! Auto-filling login credentials...', 'success');
+  toast('🎓 Student account registered! Please enter your Email & Password to login.', 'success');
   closeModal('regModal');
-  currentRole = 'student';
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  const studBtn = document.getElementById('roleBtn-student');
-  if (studBtn) studBtn.classList.add('active');
-  document.getElementById('loginTitle').textContent = 'Welcome, Student 👋';
-  document.getElementById('loginSub').textContent   = 'Login to view your attendance & notifications';
   document.getElementById('loginEmail').value = email;
   document.getElementById('loginPass').value = password;
 }
