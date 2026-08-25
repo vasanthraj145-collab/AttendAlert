@@ -2161,9 +2161,10 @@ async function sendSMSNow() {
 window.openModal = function(id) {
   const m = document.getElementById(id);
   if (m) {
+    document.body.appendChild(m);
     m.classList.remove('hidden');
     m.style.setProperty('display', 'flex', 'important');
-    m.style.setProperty('z-index', '999999', 'important');
+    m.style.setProperty('z-index', '9999999', 'important');
     m.style.setProperty('opacity', '1', 'important');
     m.style.setProperty('visibility', 'visible', 'important');
     m.style.pointerEvents = 'auto';
