@@ -518,10 +518,10 @@ tr:hover td{background:#f8fafc;}
         <input type="password" id="loginPass" value="admin123">
       </div>
       <button class="btn-login" data-act="doLogin">🔐 Login to Dashboard</button>
-      <button type="button" class="btn-primary" style="margin-top:12px;width:100%;background:#0284c7;font-size:13px;padding:12px" onclick="openModal('regModal')" data-act="openModal" data-modal="regModal">🎓 New Student? Register Account</button>
+      <button type="button" class="btn-primary" style="margin-top:12px;width:100%;background:#0284c7;font-size:13px;padding:12px" onclick="openModal('regModal'); document.getElementById('regModal').classList.remove('hidden'); document.getElementById('regModal').style.setProperty('display','flex','important');" data-act="openModal" data-modal="regModal">🎓 New Student? Register Account</button>
       <div style="margin-top:14px;text-align:center;padding-top:10px">
         <span style="font-size:12px;color:var(--muted)">Need help? </span>
-        <a href="javascript:void(0)" onclick="openModal('regModal')" data-act="openModal" data-modal="regModal" style="color:var(--blue);font-weight:700;font-size:12px;text-decoration:underline">Student Registration Portal</a>
+        <a href="javascript:void(0)" onclick="openModal('regModal'); document.getElementById('regModal').classList.remove('hidden'); document.getElementById('regModal').style.setProperty('display','flex','important');" data-act="openModal" data-modal="regModal" style="color:var(--blue);font-weight:700;font-size:12px;text-decoration:underline">Student Registration Portal</a>
       </div>
     </div>
   </div>
@@ -2162,8 +2162,10 @@ window.openModal = function(id) {
   const m = document.getElementById(id);
   if (m) {
     m.classList.remove('hidden');
-    m.style.display = 'flex';
-    m.style.zIndex = '99999';
+    m.style.setProperty('display', 'flex', 'important');
+    m.style.setProperty('z-index', '999999', 'important');
+    m.style.setProperty('opacity', '1', 'important');
+    m.style.setProperty('visibility', 'visible', 'important');
     m.style.pointerEvents = 'auto';
   }
 };
@@ -2172,7 +2174,7 @@ window.closeModal = function(id) {
   const m = document.getElementById(id);
   if (m) {
     m.classList.add('hidden');
-    m.style.display = 'none';
+    m.style.setProperty('display', 'none', 'important');
   }
 };
 
