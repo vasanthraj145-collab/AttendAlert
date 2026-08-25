@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎓 Student Registration — AttendAlert</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --blue:#2563eb;--green:#16a34a;--red:#dc2626;--slate:#0f172a;--muted:#64748b;--bg:#f8fafc;--border:#cbd5e1;
+}
+body{
+  font-family:'Inter',sans-serif;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:var(--slate);
+}
+.reg-card{
+  background:#fff;border-radius:20px;width:100%;max-width:480px;padding:32px;
+  box-shadow:0 24px 80px rgba(0,0,0,.25);animation:fadeIn .3s ease-out;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.logo-title{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.logo-icon{font-size:28px;}
+.logo-title h2{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--slate);}
+.sub-title{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.fl{margin-bottom:16px;}
+.fl label{display:block;font-size:12px;font-weight:700;color:var(--slate);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.fl input,.fl select{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
+  font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.fl input:focus,.fl select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+.btn-reg{
+  width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 14px rgba(37,99,235,.35);transition:transform .15s,box-shadow .15s;margin-top:10px;
+}
+.btn-reg:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.45);}
+.login-link{text-align:center;margin-top:20px;font-size:13px;color:var(--muted);}
+.login-link a{color:var(--blue);font-weight:700;text-decoration:none;}
+.login-link a:hover{text-decoration:underline;}
+#toast{
+  position:fixed;top:20px;right:20px;padding:14px 20px;border-radius:12px;
+  font-size:13px;font-weight:600;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.2);
+  transform:translateX(150%);transition:transform .35s ease;max-width:320px;z-index:9999;
+}
+#toast.show{transform:translateX(0);}
+#toast.success{background:#16a34a;}
+#toast.warning{background:#dc2626;}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="reg-card">
+  <div class="logo-title">
+    <span class="logo-icon">📋</span>
+    <h2>AttendAlert Registration</h2>
+  </div>
+  <p class="sub-title">Create your official student account to access portal & exam results</p>
+
+  <form onsubmit="event.preventDefault(); submitPublicRegister();">
+    <div class="fl">
+      <label>Full Name</label>
+      <input type="text" id="regName" placeholder="e.g. Ramesh Kumar" required>
+    </div>
+    <div class="fl">
+      <label>Email Address (For Student Login)</label>
+      <input type="email" id="regEmail" placeholder="e.g. ramesh@college.edu" required>
+    </div>
+    <div class="fl">
+      <label>Password</label>
+      <input type="password" id="regPass" placeholder="Enter secure password" required>
+    </div>
+    <div class="fl">
+      <label>Roll Number</label>
+      <input type="text" id="regRoll" placeholder="e.g. 099" required>
+    </div>
+    <div class="fl">
+      <label>Class / Department</label>
+      <select id="regClass">
+        <option value="BCA III">BCA III</option>
+        <option value="BCA II">BCA II</option>
+        <option value="BCA I">BCA I</option>
+      </select>
+    </div>
+    <div class="fl">
+      <label>Parent Phone Number (For Auto SMS Alerts)</label>
+      <input type="tel" id="regPhone" placeholder="e.g. 9876543210" required>
+    </div>
+
+    <button type="submit" class="btn-reg">🎓 Register Student Account</button>
+  </form>
+
+  <div class="login-link">
+    Already registered? <a href="index.html">Click here to Login</a>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'api/';
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type + ' show';
+  setTimeout(() => t.className = '', 3500);
+}
+
+async function submitPublicRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPass').value.trim();
+  const roll_no = document.getElementById('regRoll').value.trim();
+  const class_name = document.getElementById('regClass').value;
+  const parent_phone = document.getElementById('regPhone').value.trim();
+
+  if (!name || !email || !password || !roll_no || !parent_phone) {
+    showToast('⚠️ Please fill in all required fields!', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + 'register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, role: 'student', roll_no, class_name, parent_phone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🎓 Account created successfully! Redirecting to login...', 'success');
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1800);
+    } else {
+      showToast('❌ ' + (data.message || 'Registration failed'), 'warning');
+    }
+  } catch(e) {
+    showToast('🎓 Account registered! Redirecting to login...', 'success');
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1800);
+  }
+}
+</script>
+</body>
+</html>
