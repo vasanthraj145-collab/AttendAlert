@@ -17,7 +17,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
-    echo json_encode(["success" => false, "message" => "User not found"]);
+    echo json_encode(["success" => false, "message" => "Invalid email or password"]);
     exit;
 }
 
@@ -25,7 +25,7 @@ $user = $result->fetch_assoc();
 
 // password_verify checks the plain password against the hashed one in DB
 if (!password_verify($password, $user["password"])) {
-    echo json_encode(["success" => false, "message" => "Incorrect password"]);
+    echo json_encode(["success" => false, "message" => "Invalid email or password"]);
     exit;
 }
 
