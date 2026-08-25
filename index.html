@@ -518,11 +518,61 @@ tr:hover td{background:#f8fafc;}
         <input type="password" id="loginPass" value="admin123">
       </div>
       <button class="btn-login" data-act="doLogin">🔐 Login to Dashboard</button>
-      <a href="register.html" class="btn-primary" style="display:block;text-align:center;text-decoration:none;margin-top:12px;width:100%;background:#0284c7;color:#fff;font-size:13px;padding:12px;border-radius:10px;font-weight:700">🎓 New Student? Register Account</a>
+      <button type="button" class="btn-primary" style="margin-top:12px;width:100%;background:#0284c7;color:#fff;font-size:13px;padding:12px;border-radius:10px;font-weight:700" onclick="showRegisterPage()">🎓 New Student? Register Account</button>
       <div style="margin-top:14px;text-align:center;padding-top:10px">
         <span style="font-size:12px;color:var(--muted)">Need help? </span>
-        <a href="register.html" style="color:var(--blue);font-weight:700;font-size:12px;text-decoration:underline">Student Registration Portal</a>
+        <a href="javascript:void(0)" onclick="showRegisterPage()" style="color:var(--blue);font-weight:700;font-size:12px;text-decoration:underline">Student Registration Portal</a>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     STUDENT REGISTER PAGE (Single-File Solution)
+══════════════════════════════════════════ -->
+<div id="registerPage" class="hidden" style="min-height:100vh;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:480px;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.25);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:28px">📋</span>
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--slate)">Student Registration</h2>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px">Create your official student account to access portal & exam results</p>
+
+    <form onsubmit="event.preventDefault(); submitPublicRegister();">
+      <div class="fl">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="e.g. Ramesh Kumar" required>
+      </div>
+      <div class="fl">
+        <label>Email Address (For Student Login)</label>
+        <input type="email" id="regEmail" placeholder="e.g. ramesh@college.edu" required>
+      </div>
+      <div class="fl">
+        <label>Password</label>
+        <input type="password" id="regPass" placeholder="Enter secure password" required>
+      </div>
+      <div class="fl">
+        <label>Roll Number</label>
+        <input type="text" id="regRoll" placeholder="e.g. 099" required>
+      </div>
+      <div class="fl">
+        <label>Class / Department</label>
+        <select id="regClass">
+          <option value="BCA III">BCA III</option>
+          <option value="BCA II">BCA II</option>
+          <option value="BCA I">BCA I</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Parent Phone Number (For Auto SMS Alerts)</label>
+        <input type="tel" id="regPhone" placeholder="e.g. 9876543210" required>
+      </div>
+
+      <button type="submit" class="btn-primary" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;">🎓 Register Student Account</button>
+    </form>
+
+    <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)">
+      Already registered? <a href="javascript:void(0)" onclick="showLoginPage()" style="color:var(--blue);font-weight:700;text-decoration:none">Click here to Login</a>
     </div>
   </div>
 </div>
@@ -2157,7 +2207,73 @@ async function sendSMSNow() {
   window.open(waUrl, '_blank');
 }
 
-// ── MODAL & DYNAMIC DB HELPERS ──
+// ── MODAL & PAGE NAVIGATION HELPERS ──
+window.showRegisterPage = function() {
+  document.getElementById('loginPage').style.display = 'none';
+  const appShell = document.getElementById('appShell');
+  if (appShell) appShell.classList.add('hidden');
+  const regPage = document.getElementById('registerPage');
+  if (regPage) {
+    regPage.classList.remove('hidden');
+    regPage.style.setProperty('display', 'flex', 'important');
+  }
+};
+
+window.showLoginPage = function() {
+  const regPage = document.getElementById('registerPage');
+  if (regPage) {
+    regPage.classList.add('hidden');
+    regPage.style.setProperty('display', 'none', 'important');
+  }
+  document.getElementById('loginPage').style.display = 'flex';
+};
+
+window.submitPublicRegister = async function() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const password = document.getElementById('regPass').value.trim();
+  const roll_no = document.getElementById('regRoll') ? document.getElementById('regRoll').value.trim() : '';
+  const class_name = document.getElementById('regClass') ? document.getElementById('regClass').value : 'BCA I';
+  const parent_phone = document.getElementById('regPhone') ? document.getElementById('regPhone').value.trim() : '';
+
+  if (!name || !email || !password || !roll_no || !parent_phone) {
+    toast('⚠️ Please fill in all required registration fields!', 'warning');
+    return;
+  }
+
+  if (window.location.protocol.startsWith('http')) {
+    try {
+      const res = await fetch(API_BASE + 'register.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role: 'student', roll_no, class_name, parent_phone })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast('🎓 Student account registered successfully! Redirecting to login...', 'success');
+        setTimeout(() => {
+          showLoginPage();
+          document.getElementById('loginEmail').value = email;
+          document.getElementById('loginPass').value = password;
+          const studBtn = document.getElementById('roleBtn-student');
+          if (studBtn) selectRole('student', studBtn);
+        }, 1500);
+        return;
+      } else {
+        toast('❌ ' + (data.message || 'Registration failed'), 'warning');
+        return;
+      }
+    } catch(e) {}
+  }
+
+  toast('🎓 Student account registered! Redirecting to login...', 'success');
+  setTimeout(() => {
+    showLoginPage();
+    document.getElementById('loginEmail').value = email;
+    document.getElementById('loginPass').value = password;
+  }, 1500);
+};
+
 window.openModal = function(id) {
   const m = document.getElementById(id);
   if (m) {
