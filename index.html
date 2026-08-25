@@ -2211,8 +2211,12 @@ async function submitRegister() {
       if (data.success) {
         toast('🎓 Student account registered & saved to MySQL database! You can now log in.', 'success');
         closeModal('regModal');
+        currentRole = 'student';
+        document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
         const studBtn = document.getElementById('roleBtn-student');
-        if (studBtn) selectRole('student', studBtn);
+        if (studBtn) studBtn.classList.add('active');
+        document.getElementById('loginTitle').textContent = 'Welcome, Student 👋';
+        document.getElementById('loginSub').textContent   = 'Login to view your attendance & notifications';
         document.getElementById('loginEmail').value = email;
         document.getElementById('loginPass').value = password;
         if (typeof loadStudents === 'function') loadStudents();
@@ -2228,8 +2232,12 @@ async function submitRegister() {
 
   toast('🎓 Student account registered! Auto-filling login credentials...', 'success');
   closeModal('regModal');
+  currentRole = 'student';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   const studBtn = document.getElementById('roleBtn-student');
-  if (studBtn) selectRole('student', studBtn);
+  if (studBtn) studBtn.classList.add('active');
+  document.getElementById('loginTitle').textContent = 'Welcome, Student 👋';
+  document.getElementById('loginSub').textContent   = 'Login to view your attendance & notifications';
   document.getElementById('loginEmail').value = email;
   document.getElementById('loginPass').value = password;
 }
