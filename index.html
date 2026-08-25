@@ -1628,21 +1628,24 @@ function toast(msg, type='success') {
 function selectRole(role, btn) {
   currentRole = role;
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
 
   const map = {
-    admin:   {email:'admin@college.edu',   pass:'admin123', title:'Welcome, Admin 👋',   sub:'Login to access the admin dashboard'},
-    teacher: {email:'teacher@college.edu', pass:'teach123', title:'Welcome, Teacher 👋', sub:'Login to access your teaching portal'},
-    student: {email:'student@college.edu', pass:'stud123',  title:'Welcome, Student 👋', sub:'Login to view your attendance & notifications'},
+    admin:   {email:'admin@college.edu',   pass:'admin123', title:'Welcome, Admin 👋',   sub:'Enter your administrator email & password'},
+    teacher: {email:'teacher@college.edu', pass:'teach123', title:'Welcome, Teacher 👋', sub:'Enter your faculty email & password'},
+    student: {email:'student@college.edu', pass:'stud123',  title:'Welcome, Student 👋', sub:'Enter your student email & password'},
   };
-  // Force set the input values
   const emailEl = document.getElementById('loginEmail');
   const passEl  = document.getElementById('loginPass');
-  emailEl.value = map[role].email;
-  passEl.value  = map[role].pass;
-  // Trigger input events so browser doesn't cache old values
-  emailEl.dispatchEvent(new Event('input'));
-  passEl.dispatchEvent(new Event('input'));
+
+  // Only auto-fill if empty or previously set to demo email
+  const currentEmail = emailEl.value.trim().toLowerCase();
+  const demoEmails = ['admin@college.edu', 'teacher@college.edu', 'student@college.edu', ''];
+  if (demoEmails.includes(currentEmail)) {
+    emailEl.value = map[role].email;
+    passEl.value  = map[role].pass;
+  }
+
   document.getElementById('loginTitle').textContent = map[role].title;
   document.getElementById('loginSub').textContent   = map[role].sub;
 }
@@ -2155,21 +2158,23 @@ async function sendSMSNow() {
 }
 
 // ── MODAL & DYNAMIC DB HELPERS ──
-function openModal(id) {
+window.openModal = function(id) {
   const m = document.getElementById(id);
   if (m) {
     m.classList.remove('hidden');
     m.style.display = 'flex';
+    m.style.zIndex = '99999';
+    m.style.pointerEvents = 'auto';
   }
-}
+};
 
-function closeModal(id) {
+window.closeModal = function(id) {
   const m = document.getElementById(id);
   if (m) {
     m.classList.add('hidden');
     m.style.display = 'none';
   }
-}
+};
 
 function toggleRegFields(role) {
   const st = document.getElementById('regStudentFields');
